@@ -9,15 +9,18 @@ are logged as GitHub issues.*
 ## Dependencies
 
 * Ruby 2.2 or higher
+* [pmemkv](https://github.com/pmem/pmemkv) - native key/value library
 * [ffi](https://github.com/ffi/ffi) - for native library integration
 * [rspec](https://github.com/rspec/rspec) - for automated testing
 
 ## Installation
 
-Add this line to your Gemfile:
+Start by installing [pmemkv](https://github.com/pmem/pmemkv#installation) on your system.
+
+Add gem to your Gemfile:
 
 ```
 gem 'pmemkv', :git => 'https://github.com/pmem/pmemkv-ruby.git'
 ```
 
-Then install using Bundler: `bundle install`
+Download gems using Bundler: `bundle install`
