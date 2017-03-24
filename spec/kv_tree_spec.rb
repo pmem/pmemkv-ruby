@@ -32,10 +32,10 @@
 
 require 'pmemkv/all'
 
-describe Pmemkv do
+describe KVTree do
 
-  it 'runs a test' do
-    expect(true).to be true
+  it 'uses module namespace' do
+    expect(KVTree.class.equal?(Pmemkv::KVTree.class)).to be true
   end
 
 end
