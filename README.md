@@ -11,7 +11,8 @@ are logged as GitHub issues.*
 * Ruby 2.2 or higher
 * [pmemkv](https://github.com/pmem/pmemkv) - native key/value library
 * [ffi](https://github.com/ffi/ffi) - for native library integration
-* [rspec](https://github.com/rspec/rspec) - for automated testing
+* Used only for testing:
+  * [rspec](https://github.com/rspec/rspec) - test framework
 
 ## Installation
 
