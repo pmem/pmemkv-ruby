@@ -25,3 +25,19 @@ gem 'pmemkv', :git => 'https://github.com/pmem/pmemkv-ruby.git'
 ```
 
 Download gems using Bundler: `bundle install`
+
+## Sample Code
+
+We are using `/dev/shm` to
+[emulate persistent memory](http://pmem.io/2016/02/22/pm-emulation.html)
+in this simple example.
+
+```
+require 'pmemkv/all'
+
+kv = KVTree.new('/dev/shm/mykv', 8388608) # 8 MB
+kv.put('key1', 'value1')
+expect(kv.get('key1')).to eql 'value1'
+kv.remove('key1')
+kv.close
+```
