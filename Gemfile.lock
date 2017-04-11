@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     pmemkv (0.0.1)
-      ffi (~> 1.9)
+      ffi
 
 GEM
   remote: https://rubygems.org/
@@ -31,4 +31,4 @@ DEPENDENCIES
   rspec
 
 BUNDLED WITH
-   1.12.5
+   1.14.6
