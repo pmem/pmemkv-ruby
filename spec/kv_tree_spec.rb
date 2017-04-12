@@ -32,9 +32,189 @@
 
 require 'pmemkv/all'
 
+PATH = '/dev/shm/pmemkv-ruby'
+SIZE = 1024 * 1024 * 8
+
 describe KVTree do
 
-  it 'uses module namespace' do
+  before do
+    File.delete(PATH) if File.exist?(PATH)
+    expect(File.exist?(PATH)).to be false
+  end
+
+  after do
+    File.delete(PATH) if File.exist?(PATH)
+    expect(File.exist?(PATH)).to be false
+  end
+
+  it 'creates instance' do
+    size = 1024 * 1024 * 11
+    kv = KVTree.new(PATH, size)
+    expect(kv.closed?).to be false
+    expect(kv.size).to eql size
+    kv.close
+    expect(kv.closed?).to be true
+  end
+
+  it 'creates instance from existing pool' do
+    size = 1024 * 1024 * 13
+    kv = KVTree.new(PATH, size)
+    kv.close
+    kv = KVTree.new(PATH, 0)
+    expect(kv.closed?).to be false
+    expect(kv.size).to eql size
+    kv.close
+    expect(kv.closed?).to be true
+  end
+
+  it 'closes instance multiple times' do
+    size = 1024 * 1024 * 15
+    kv = KVTree.new(PATH, size)
+    expect(kv.closed?).to be false
+    expect(kv.size).to eql size
+    kv.close
+    expect(kv.closed?).to be true
+    kv.close
+    expect(kv.closed?).to be true
+    kv.close
+    expect(kv.closed?).to be true
+  end
+
+  it 'gets missing key' do
+    kv = KVTree.new(PATH, SIZE)
+    expect(kv.get('key1')).to be nil
+    kv.close
+  end
+
+  it 'puts basic value' do
+    kv = KVTree.new(PATH, SIZE)
+    kv.put('key1', 'value1')
+    expect(kv.get('key1')).to eql 'value1'
+    kv.close
+  end
+
+  it 'puts complex value' do
+    kv = KVTree.new(PATH, SIZE)
+    val = 'one\ttwo or <p>three</p>\n {four}   and ^five'
+    kv.put('key1', val)
+    expect(kv.get('key1')).to eql val
+    kv.close
+  end
+
+  it 'puts empty key' do
+    kv = KVTree.new(PATH, SIZE)
+    kv.put('', 'value1')
+    expect(kv.get('')).to eql 'value1'
+    kv.close
+  end
+
+  it 'puts empty value' do
+    kv = KVTree.new(PATH, SIZE)
+    kv.put('key1', '')
+    expect(kv.get('key1')).to eql ''
+    kv.close
+  end
+
+  it 'puts multiple values' do
+    kv = KVTree.new(PATH, SIZE)
+    kv.put('key1', 'value1')
+    kv.put('key2', 'value2')
+    kv.put('key3', 'value3')
+    expect(kv.get('key1')).to eql 'value1'
+    expect(kv.get('key2')).to eql 'value2'
+    expect(kv.get('key3')).to eql 'value3'
+    kv.close
+  end
+
+  it 'puts overwriting existing value' do
+    kv = KVTree.new(PATH, SIZE)
+    kv.put('key1', 'value1')
+    expect(kv.get('key1')).to eql 'value1'
+    kv.put('key1', 'value123')
+    expect(kv.get('key1')).to eql 'value123'
+    kv.put('key1', 'asdf')
+    expect(kv.get('key1')).to eql 'asdf'
+    kv.close
+  end
+
+  it 'puts utf-8 key' do
+    kv = KVTree.new(PATH, SIZE)
+    val = 'to remember, note, record'
+    kv.put('记', val)
+    expect(kv.get('记')).to eql val
+    kv.close
+  end
+
+  it 'puts utf-8 value' do
+    kv = KVTree.new(PATH, SIZE)
+    val = '记 means to remember, note, record'
+    kv.put('key1', val)
+    expect(kv.get('key1')).to eql val
+    kv.close
+  end
+
+  it 'puts very large value' do
+    # todo finish
+  end
+
+  it 'removes key and value' do
+    kv = KVTree.new(PATH, SIZE)
+    kv.put('key1', 'value1')
+    expect(kv.get('key1')).to eql 'value1'
+    kv.remove('key1')
+    expect(kv.get('key1')).to be nil
+    kv.close
+  end
+
+  it 'throws exception on create when path is invalid' do
+    kv = nil
+    begin
+      kv = KVTree.new('/tmp/123/234/345/456/567/678/nope.nope', SIZE)
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to open persistent pool'
+    end
+    expect(kv).to be nil
+  end
+
+  it 'throws exception on create with huge size' do
+    kv = nil
+    begin
+      kv = KVTree.new(PATH, 9223372036854775807) # 9.22 exabytes
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to open persistent pool'
+    end
+    expect(kv).to be nil
+  end
+
+  it 'throws exception on create with tiny size' do
+    kv = nil
+    begin
+      kv = KVTree.new(PATH, SIZE - 1) # too small
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to open persistent pool'
+    end
+    expect(kv).to be nil
+  end
+
+  it 'throws exception on put when out of space' do
+    kv = KVTree.new(PATH, SIZE)
+    20692.times do |i|
+      istr = i.to_s
+      kv.put(istr, istr)
+    end
+    begin
+      kv.put('20693', '20693')
+      expect(true).to be false
+    rescue RuntimeError => e
+      expect(e.message).to eql 'unable to put value'
+    end
+    kv.close
+  end
+
+  it 'uses module to publish types' do
     expect(KVTree.class.equal?(Pmemkv::KVTree.class)).to be true
   end
 

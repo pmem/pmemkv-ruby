@@ -30,5 +30,67 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-class KVTree
+require 'ffi'
+
+class IntPtr < FFI::Struct
+  layout :value, :uint32
+end
+
+module Pmemkv # todo use env var, alt dirs
+  extend FFI::Library
+  ffi_lib '/usr/local/lib/libpmemkv.so'
+  attach_function :kvtree_open, [:string, :size_t], :pointer
+  attach_function :kvtree_close, [:pointer], :void
+  attach_function :kvtree_get, [:pointer, :string, :size_t, :pointer, IntPtr], :int8
+  attach_function :kvtree_put, [:pointer, :string, :string], :int8
+  attach_function :kvtree_remove, [:pointer, :string], :void
+  attach_function :kvtree_size, [:pointer], :size_t
+end
+
+class KVTree # todo missing getList support
+
+  def initialize(path, size)
+    @closed = false
+    @kv = Pmemkv.kvtree_open(path, size)
+    raise ArgumentError.new('unable to open persistent pool') if @kv.null?
+  end
+
+  def close # todo autoclose when out of scope
+    unless @closed
+      @closed = true
+      Pmemkv.kvtree_close(@kv)
+    end
+  end
+
+  def closed?
+    @closed
+  end
+
+  def get(key)
+    limit = 1024 # todo make configurable
+    value = FFI::MemoryPointer.new(:pointer, limit)
+    valuebytes = IntPtr.new
+    result = Pmemkv.kvtree_get(@kv, key, limit, value, valuebytes)
+    if result == 0
+      nil
+    elsif result > 0
+      value.get_string(0, valuebytes[:value]).force_encoding('utf-8') # todo proper charset?
+    else
+      raise RuntimeError.new('unable to get value')
+    end
+  end
+
+  def put(key, value)
+    result = Pmemkv.kvtree_put(@kv, key, value)
+    raise RuntimeError.new('unable to put value') if result != 1
+  end
+
+  def remove(key)
+    Pmemkv.kvtree_remove(@kv, key)
+  end
+
+  def size
+    Pmemkv.kvtree_size(@kv)
+  end
+
 end
