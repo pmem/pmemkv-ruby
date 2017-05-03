@@ -42,7 +42,7 @@ module Pmemkv # todo use env var, alt dirs
   attach_function :kvtree_open, [:string, :size_t], :pointer
   attach_function :kvtree_close, [:pointer], :void
   attach_function :kvtree_get, [:pointer, :string, :size_t, :pointer, IntPtr], :int8
-  attach_function :kvtree_put, [:pointer, :string, :string], :int8
+  attach_function :kvtree_put, [:pointer, :string, :pointer, IntPtr], :int8
   attach_function :kvtree_remove, [:pointer, :string], :void
   attach_function :kvtree_size, [:pointer], :size_t
 end
@@ -70,18 +70,26 @@ class KVTree # todo missing getList support
     limit = 1024 # todo make configurable
     value = FFI::MemoryPointer.new(:pointer, limit)
     valuebytes = IntPtr.new
+
     result = Pmemkv.kvtree_get(@kv, key, limit, value, valuebytes)
     if result == 0
       nil
     elsif result > 0
-      value.get_string(0, valuebytes[:value]).force_encoding('utf-8') # todo proper charset?
+      value.get_bytes(0, valuebytes[:value]).force_encoding('utf-8') # todo proper charset?
     else
       raise RuntimeError.new('unable to get value')
     end
   end
 
-  def put(key, value)
-    result = Pmemkv.kvtree_put(@kv, key, value)
+  def put(key, new_value)
+    limit = 1024 # todo make configurable
+    value = FFI::MemoryPointer.new(:pointer, limit)
+    valuebytes = IntPtr.new
+
+    bytesize = new_value.bytesize
+    value.put_bytes(0, new_value, 0, bytesize)
+    valuebytes[:value] = bytesize
+    result = Pmemkv.kvtree_put(@kv, key, value, valuebytes)
     raise RuntimeError.new('unable to put value') if result != 1
   end
 

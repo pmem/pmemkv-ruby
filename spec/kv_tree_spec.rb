@@ -93,6 +93,17 @@ describe KVTree do
     kv.close
   end
 
+  it 'puts binary key' do
+    # todo should fail?
+  end
+
+  it 'puts binary value' do
+    kv = KVTree.new(PATH, SIZE)
+    kv.put('key1', "A\0B\0\0C")
+    expect(kv.get('key1')).to eql "A\0B\0\0C"
+    kv.close
+  end
+
   it 'puts complex value' do
     kv = KVTree.new(PATH, SIZE)
     val = 'one\ttwo or <p>three</p>\n {four}   and ^five'
