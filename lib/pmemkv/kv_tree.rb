@@ -36,7 +36,7 @@ class IntPtr < FFI::Struct
   layout :value, :uint32
 end
 
-module Pmemkv # todo use env var, alt dirs
+module Pmemkv
   extend FFI::Library
   ffi_lib '/usr/local/lib/libpmemkv.so'
   attach_function :kvtree_open, [:string, :size_t], :pointer
@@ -47,15 +47,15 @@ module Pmemkv # todo use env var, alt dirs
   attach_function :kvtree_size, [:pointer], :size_t
 end
 
-class KVTree # todo missing getList support
+class KVTree
 
-  def initialize(path, size)
+  def initialize(path, size, options={})
     @closed = false
     @kv = Pmemkv.kvtree_open(path, size)
     raise ArgumentError.new('unable to open persistent pool') if @kv.null?
   end
 
-  def close # todo autoclose when out of scope
+  def close
     unless @closed
       @closed = true
       Pmemkv.kvtree_close(@kv)
@@ -67,7 +67,7 @@ class KVTree # todo missing getList support
   end
 
   def get(key)
-    limit = 1024 # todo make configurable
+    limit = 1024
     value = FFI::MemoryPointer.new(:pointer, limit)
     valuebytes = IntPtr.new
 
@@ -75,14 +75,14 @@ class KVTree # todo missing getList support
     if result == 0
       nil
     elsif result > 0
-      value.get_bytes(0, valuebytes[:value]).force_encoding('utf-8') # todo proper charset?
+      value.get_bytes(0, valuebytes[:value]).force_encoding('utf-8')
     else
       raise RuntimeError.new('unable to get value')
     end
   end
 
   def put(key, new_value)
-    limit = 1024 # todo make configurable
+    limit = 1024
     value = FFI::MemoryPointer.new(:pointer, limit)
     valuebytes = IntPtr.new
 

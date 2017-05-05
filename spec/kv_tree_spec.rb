@@ -94,7 +94,7 @@ describe KVTree do
   end
 
   it 'puts binary key' do
-    # todo should fail?
+    # todo finish
   end
 
   it 'puts binary value' do
