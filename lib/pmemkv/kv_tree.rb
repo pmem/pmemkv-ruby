@@ -33,7 +33,7 @@
 require 'ffi'
 
 class IntPtr < FFI::Struct
-  layout :value, :uint32
+  layout :value, :int32
 end
 
 module Pmemkv
@@ -41,7 +41,7 @@ module Pmemkv
   ffi_lib '/usr/local/lib/libpmemkv.so'
   attach_function :kvtree_open, [:string, :size_t], :pointer
   attach_function :kvtree_close, [:pointer], :void
-  attach_function :kvtree_get, [:pointer, :string, :size_t, :pointer, IntPtr], :int8
+  attach_function :kvtree_get, [:pointer, :string, :int32, :pointer, IntPtr], :int8
   attach_function :kvtree_put, [:pointer, :string, :pointer, IntPtr], :int8
   attach_function :kvtree_remove, [:pointer, :string], :void
   attach_function :kvtree_size, [:pointer], :size_t
