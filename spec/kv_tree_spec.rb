@@ -212,12 +212,11 @@ describe KVTree do
 
   it 'throws exception on put when out of space' do
     kv = KVTree.new(PATH, SIZE)
-    20692.times do |i|
-      istr = i.to_s
-      kv.put(istr, istr)
-    end
     begin
-      kv.put('20693', '20693')
+      100000.times do |i|
+        istr = i.to_s
+        kv.put(istr, istr)
+      end
       expect(true).to be false
     rescue RuntimeError => e
       expect(e.message).to eql 'unable to put value'
