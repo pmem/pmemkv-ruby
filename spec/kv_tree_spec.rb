@@ -114,15 +114,23 @@ describe KVTree do
 
   it 'puts empty key' do
     kv = KVTree.new(PATH, SIZE)
-    kv.put('', 'value1')
-    expect(kv.get('')).to eql 'value1'
+    kv.put('', 'empty')
+    kv.put(' ', 'single-space')
+    kv.put('\t\t', 'two-tab')
+    expect(kv.get('')).to eql 'empty'
+    expect(kv.get(' ')).to eql 'single-space'
+    expect(kv.get('\t\t')).to eql 'two-tab'
     kv.close
   end
 
   it 'puts empty value' do
     kv = KVTree.new(PATH, SIZE)
-    kv.put('key1', '')
-    expect(kv.get('key1')).to eql ''
+    kv.put('empty', '')
+    kv.put('single-space', ' ')
+    kv.put('two-tab', '\t\t')
+    expect(kv.get('empty')).to eql ''
+    expect(kv.get('single-space')).to eql ' '
+    expect(kv.get('two-tab')).to eql '\t\t'
     kv.close
   end
 
