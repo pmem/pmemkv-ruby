@@ -32,6 +32,7 @@
 
 require 'pmemkv/all'
 
+ENGINE = 'kvtree'
 PATH = '/dev/shm/pmemkv-ruby'
 SIZE = 1024 * 1024 * 8
 
@@ -49,7 +50,7 @@ describe KVEngine do
 
   it 'creates instance' do
     size = 1024 * 1024 * 11
-    kv = KVEngine.new(PATH, size)
+    kv = KVEngine.new(ENGINE, PATH, size)
     expect(kv.closed?).to be false
     expect(kv.size).to eql size
     kv.close
@@ -58,10 +59,10 @@ describe KVEngine do
 
   it 'creates instance from existing pool' do
     size = 1024 * 1024 * 13
-    kv = KVEngine.new(PATH, size)
+    kv = KVEngine.new(ENGINE, PATH, size)
     kv.close
     expect(kv.closed?).to be true
-    kv = KVEngine.new(PATH, 0)
+    kv = KVEngine.new(ENGINE, PATH, 0)
     expect(kv.closed?).to be false
     expect(kv.size).to eql size
     kv.close
@@ -70,7 +71,7 @@ describe KVEngine do
 
   it 'closes instance multiple times' do
     size = 1024 * 1024 * 15
-    kv = KVEngine.new(PATH, size)
+    kv = KVEngine.new(ENGINE, PATH, size)
     expect(kv.closed?).to be false
     expect(kv.size).to eql size
     kv.close
@@ -82,13 +83,13 @@ describe KVEngine do
   end
 
   it 'gets missing key' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     expect(kv.get('key1')).to be nil
     kv.close
   end
 
   it 'puts basic value' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     kv.put('key1', 'value1')
     expect(kv.get('key1')).to eql 'value1'
     kv.close
@@ -99,14 +100,14 @@ describe KVEngine do
   end
 
   it 'puts binary value' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     kv.put('key1', "A\0B\0\0C")
     expect(kv.get('key1')).to eql "A\0B\0\0C"
     kv.close
   end
 
   it 'puts complex value' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     val = 'one\ttwo or <p>three</p>\n {four}   and ^five'
     kv.put('key1', val)
     expect(kv.get('key1')).to eql val
@@ -114,7 +115,7 @@ describe KVEngine do
   end
 
   it 'puts empty key' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     kv.put('', 'empty')
     kv.put(' ', 'single-space')
     kv.put('\t\t', 'two-tab')
@@ -125,7 +126,7 @@ describe KVEngine do
   end
 
   it 'puts empty value' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     kv.put('empty', '')
     kv.put('single-space', ' ')
     kv.put('two-tab', '\t\t')
@@ -136,7 +137,7 @@ describe KVEngine do
   end
 
   it 'puts multiple values' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     kv.put('key1', 'value1')
     kv.put('key2', 'value2')
     kv.put('key3', 'value3')
@@ -147,7 +148,7 @@ describe KVEngine do
   end
 
   it 'puts overwriting existing value' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     kv.put('key1', 'value1')
     expect(kv.get('key1')).to eql 'value1'
     kv.put('key1', 'value123')
@@ -158,7 +159,7 @@ describe KVEngine do
   end
 
   it 'puts utf-8 key' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     val = 'to remember, note, record'
     kv.put('记', val)
     expect(kv.get('记')).to eql val
@@ -166,7 +167,7 @@ describe KVEngine do
   end
 
   it 'puts utf-8 value' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     val = '记 means to remember, note, record'
     kv.put('key1', val)
     expect(kv.get('key1')).to eql val
@@ -178,7 +179,7 @@ describe KVEngine do
   end
 
   it 'removes key and value' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     kv.put('key1', 'value1')
     expect(kv.get('key1')).to eql 'value1'
     kv.remove('key1')
@@ -186,10 +187,21 @@ describe KVEngine do
     kv.close
   end
 
+  it 'throws exception on create when engine is invalid' do
+    kv = nil
+    begin
+      kv = KVEngine.new('nope.nope', PATH, SIZE)
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to open persistent pool'
+    end
+    expect(kv).to be nil
+  end
+
   it 'throws exception on create when path is invalid' do
     kv = nil
     begin
-      kv = KVEngine.new('/tmp/123/234/345/456/567/678/nope.nope', SIZE)
+      kv = KVEngine.new(ENGINE, '/tmp/123/234/345/456/567/678/nope.nope', SIZE)
       expect(true).to be false
     rescue ArgumentError => e
       expect(e.message).to eql 'unable to open persistent pool'
@@ -200,7 +212,7 @@ describe KVEngine do
   it 'throws exception on create with huge size' do
     kv = nil
     begin
-      kv = KVEngine.new(PATH, 9223372036854775807) # 9.22 exabytes
+      kv = KVEngine.new(ENGINE, PATH, 9223372036854775807) # 9.22 exabytes
       expect(true).to be false
     rescue ArgumentError => e
       expect(e.message).to eql 'unable to open persistent pool'
@@ -211,7 +223,7 @@ describe KVEngine do
   it 'throws exception on create with tiny size' do
     kv = nil
     begin
-      kv = KVEngine.new(PATH, SIZE - 1) # too small
+      kv = KVEngine.new(ENGINE, PATH, SIZE - 1) # too small
       expect(true).to be false
     rescue ArgumentError => e
       expect(e.message).to eql 'unable to open persistent pool'
@@ -220,7 +232,7 @@ describe KVEngine do
   end
 
   it 'throws exception on put when out of space' do
-    kv = KVEngine.new(PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH, SIZE)
     begin
       100000.times do |i|
         istr = i.to_s
