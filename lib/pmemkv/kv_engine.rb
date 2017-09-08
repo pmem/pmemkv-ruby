@@ -39,26 +39,26 @@ end
 module Pmemkv
   extend FFI::Library
   ffi_lib '/usr/local/lib/libpmemkv.so'
-  attach_function :kvtree_open, [:string, :size_t], :pointer
-  attach_function :kvtree_close, [:pointer], :void
-  attach_function :kvtree_get, [:pointer, :string, :int32, :pointer, IntPtr], :int8
-  attach_function :kvtree_put, [:pointer, :string, :pointer, IntPtr], :int8
-  attach_function :kvtree_remove, [:pointer, :string], :void
-  attach_function :kvtree_size, [:pointer], :size_t
+  attach_function :kvengine_open, [:string, :size_t], :pointer
+  attach_function :kvengine_close, [:pointer], :void
+  attach_function :kvengine_get, [:pointer, :string, :int32, :pointer, IntPtr], :int8
+  attach_function :kvengine_put, [:pointer, :string, :pointer, IntPtr], :int8
+  attach_function :kvengine_remove, [:pointer, :string], :void
+  attach_function :kvengine_size, [:pointer], :size_t
 end
 
-class KVTree
+class KVEngine
 
   def initialize(path, size, options={})
     @closed = false
-    @kv = Pmemkv.kvtree_open(path, size)
+    @kv = Pmemkv.kvengine_open(path, size)
     raise ArgumentError.new('unable to open persistent pool') if @kv.null?
   end
 
   def close
     unless @closed
       @closed = true
-      Pmemkv.kvtree_close(@kv)
+      Pmemkv.kvengine_close(@kv)
     end
   end
 
@@ -71,7 +71,7 @@ class KVTree
     value = FFI::MemoryPointer.new(:pointer, limit)
     valuebytes = IntPtr.new
 
-    result = Pmemkv.kvtree_get(@kv, key, limit, value, valuebytes)
+    result = Pmemkv.kvengine_get(@kv, key, limit, value, valuebytes)
     if result == 0
       nil
     elsif result > 0
@@ -89,16 +89,16 @@ class KVTree
     bytesize = new_value.bytesize
     value.put_bytes(0, new_value, 0, bytesize)
     valuebytes[:value] = bytesize
-    result = Pmemkv.kvtree_put(@kv, key, value, valuebytes)
+    result = Pmemkv.kvengine_put(@kv, key, value, valuebytes)
     raise RuntimeError.new('unable to put value') if result != 1
   end
 
   def remove(key)
-    Pmemkv.kvtree_remove(@kv, key)
+    Pmemkv.kvengine_remove(@kv, key)
   end
 
   def size
-    Pmemkv.kvtree_size(@kv)
+    Pmemkv.kvengine_size(@kv)
   end
 
 end
