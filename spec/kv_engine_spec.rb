@@ -52,7 +52,6 @@ describe KVEngine do
     size = 1024 * 1024 * 11
     kv = KVEngine.new(ENGINE, PATH, size)
     expect(kv.closed?).to be false
-    expect(kv.size).to eql size
     kv.close
     expect(kv.closed?).to be true
   end
@@ -64,7 +63,6 @@ describe KVEngine do
     expect(kv.closed?).to be true
     kv = KVEngine.new(ENGINE, PATH, 0)
     expect(kv.closed?).to be false
-    expect(kv.size).to eql size
     kv.close
     expect(kv.closed?).to be true
   end
@@ -73,7 +71,6 @@ describe KVEngine do
     size = 1024 * 1024 * 15
     kv = KVEngine.new(ENGINE, PATH, size)
     expect(kv.closed?).to be false
-    expect(kv.size).to eql size
     kv.close
     expect(kv.closed?).to be true
     kv.close

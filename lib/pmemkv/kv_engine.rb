@@ -44,7 +44,6 @@ module Pmemkv
   attach_function :kvengine_get, [:pointer, :string, :int32, :pointer, IntPtr], :int8
   attach_function :kvengine_put, [:pointer, :string, :pointer, IntPtr], :int8
   attach_function :kvengine_remove, [:pointer, :string], :void
-  attach_function :kvengine_size, [:pointer], :size_t
 end
 
 class KVEngine
@@ -95,10 +94,6 @@ class KVEngine
 
   def remove(key)
     Pmemkv.kvengine_remove(@kv, key)
-  end
-
-  def size
-    Pmemkv.kvengine_size(@kv)
   end
 
 end
