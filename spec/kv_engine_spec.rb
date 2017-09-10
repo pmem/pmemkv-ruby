@@ -245,6 +245,16 @@ describe KVEngine do
     kv.close
   end
 
+  it 'uses blackhole engine' do
+    kv = KVEngine.new('blackhole', PATH, SIZE)
+    expect(kv.get('key1')).to be nil
+    kv.put('key1', 'value123')
+    expect(kv.get('key1')).to be nil
+    kv.remove('key1')
+    expect(kv.get('key1')).to be nil
+    kv.close
+  end
+
   it 'uses module to publish types' do
     expect(KVEngine.class.equal?(Pmemkv::KVEngine.class)).to be true
   end
