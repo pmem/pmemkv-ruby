@@ -32,26 +32,23 @@
 
 require 'ffi'
 
-class IntPtr < FFI::Struct
-  layout :value, :int32
-end
-
 module Pmemkv
   extend FFI::Library
   ffi_lib '/usr/local/lib/libpmemkv.so'
   attach_function :kvengine_open, [:string, :string, :size_t], :pointer
   attach_function :kvengine_close, [:pointer], :void
-  attach_function :kvengine_get, [:pointer, :string, :int32, :pointer, IntPtr], :int8
-  attach_function :kvengine_put, [:pointer, :string, :pointer, IntPtr], :int8
-  attach_function :kvengine_remove, [:pointer, :string], :void
+  attach_function :kvengine_get_ffi, [:pointer], :int8
+  attach_function :kvengine_put_ffi, [:pointer], :int8
+  attach_function :kvengine_remove_ffi, [:pointer], :int8
 end
 
 class KVEngine
 
-  def initialize(engine, path, size, options={})
+  def initialize(engine, path, size=8388608, limit=1024)
     @closed = false
     @kv = Pmemkv.kvengine_open(engine, path, size)
     raise ArgumentError.new('unable to open persistent pool') if @kv.null?
+    @limit=limit
   end
 
   def close
@@ -66,34 +63,62 @@ class KVEngine
   end
 
   def get(key)
-    limit = 1024
-    value = FFI::MemoryPointer.new(:pointer, limit)
-    valuebytes = IntPtr.new
+    keybytes = key.bytesize
 
-    result = Pmemkv.kvengine_get(@kv, key, limit, value, valuebytes)
+    buf = engine_buffer
+    buf.put_pointer(0, @kv)
+    buf.put_int32(8, @limit)
+    buf.put_int32(12, keybytes)
+    buf.put_int32(16, 0)
+    buf.put_bytes(20, key, 0, keybytes)
+    buf.put_int32(20 + keybytes, 0)
+
+    result = Pmemkv.kvengine_get_ffi(buf)
     if result == 0
       nil
     elsif result > 0
-      value.get_bytes(0, valuebytes[:value]).force_encoding('utf-8')
+      buf.get_bytes(20 + keybytes, buf.get_int32(16)).force_encoding('utf-8')
     else
       raise RuntimeError.new('unable to get value')
     end
   end
 
-  def put(key, new_value)
-    limit = 1024
-    value = FFI::MemoryPointer.new(:pointer, limit)
-    valuebytes = IntPtr.new
+  def put(key, value)
+    keybytes = key.bytesize
+    valuebytes = value.bytesize
 
-    bytesize = new_value.bytesize
-    value.put_bytes(0, new_value, 0, bytesize)
-    valuebytes[:value] = bytesize
-    result = Pmemkv.kvengine_put(@kv, key, value, valuebytes)
+    buf = engine_buffer
+    buf.put_pointer(0, @kv)
+    buf.put_int32(12, keybytes)
+    buf.put_int32(16, valuebytes)
+    buf.put_bytes(20, key, 0, keybytes)
+    buf.put_bytes(20 + keybytes, value, 0, valuebytes)
+
+    result = Pmemkv.kvengine_put_ffi(buf)
     raise RuntimeError.new('unable to put value') if result != 1
   end
 
   def remove(key)
-    Pmemkv.kvengine_remove(@kv, key)
+    keybytes = key.bytesize
+
+    buf = engine_buffer
+    buf.put_pointer(0, @kv)
+    buf.put_int32(12, keybytes)
+    buf.put_bytes(20, key, 0, keybytes)
+    buf.put_int32(20 + keybytes, 0)
+
+    Pmemkv.kvengine_remove_ffi(buf)
+  end
+
+  private
+
+  def engine_buffer
+    buf = Thread.current[:kv_engine_buf]
+    unless buf
+      buf = FFI::MemoryPointer.new(:pointer, @limit)
+      Thread.current[:kv_engine_buf] = buf
+    end
+    buf
   end
 
 end

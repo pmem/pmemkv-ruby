@@ -80,31 +80,34 @@ describe KVEngine do
   end
 
   it 'gets missing key' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     expect(kv.get('key1')).to be nil
     kv.close
   end
 
   it 'puts basic value' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('key1', 'value1')
     expect(kv.get('key1')).to eql 'value1'
     kv.close
   end
 
   it 'puts binary key' do
-    # todo finish
+    kv = KVEngine.new(ENGINE, PATH)
+    kv.put("A\0B\0\0C", 'value1')
+    expect(kv.get("A\0B\0\0C")).to eql 'value1'
+    kv.close
   end
 
   it 'puts binary value' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('key1', "A\0B\0\0C")
     expect(kv.get('key1')).to eql "A\0B\0\0C"
     kv.close
   end
 
   it 'puts complex value' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     val = 'one\ttwo or <p>three</p>\n {four}   and ^five'
     kv.put('key1', val)
     expect(kv.get('key1')).to eql val
@@ -112,7 +115,7 @@ describe KVEngine do
   end
 
   it 'puts empty key' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('', 'empty')
     kv.put(' ', 'single-space')
     kv.put('\t\t', 'two-tab')
@@ -123,7 +126,7 @@ describe KVEngine do
   end
 
   it 'puts empty value' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('empty', '')
     kv.put('single-space', ' ')
     kv.put('two-tab', '\t\t')
@@ -134,7 +137,7 @@ describe KVEngine do
   end
 
   it 'puts multiple values' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('key1', 'value1')
     kv.put('key2', 'value2')
     kv.put('key3', 'value3')
@@ -145,7 +148,7 @@ describe KVEngine do
   end
 
   it 'puts overwriting existing value' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('key1', 'value1')
     expect(kv.get('key1')).to eql 'value1'
     kv.put('key1', 'value123')
@@ -156,7 +159,7 @@ describe KVEngine do
   end
 
   it 'puts utf-8 key' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     val = 'to remember, note, record'
     kv.put('记', val)
     expect(kv.get('记')).to eql val
@@ -164,7 +167,7 @@ describe KVEngine do
   end
 
   it 'puts utf-8 value' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     val = '记 means to remember, note, record'
     kv.put('key1', val)
     expect(kv.get('key1')).to eql val
@@ -176,7 +179,7 @@ describe KVEngine do
   end
 
   it 'removes key and value' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('key1', 'value1')
     expect(kv.get('key1')).to eql 'value1'
     kv.remove('key1')
@@ -187,7 +190,7 @@ describe KVEngine do
   it 'throws exception on create when engine is invalid' do
     kv = nil
     begin
-      kv = KVEngine.new('nope.nope', PATH, SIZE)
+      kv = KVEngine.new('nope.nope', PATH)
       expect(true).to be false
     rescue ArgumentError => e
       expect(e.message).to eql 'unable to open persistent pool'
@@ -198,7 +201,7 @@ describe KVEngine do
   it 'throws exception on create when path is invalid' do
     kv = nil
     begin
-      kv = KVEngine.new(ENGINE, '/tmp/123/234/345/456/567/678/nope.nope', SIZE)
+      kv = KVEngine.new(ENGINE, '/tmp/123/234/345/456/567/678/nope.nope')
       expect(true).to be false
     rescue ArgumentError => e
       expect(e.message).to eql 'unable to open persistent pool'
@@ -229,7 +232,7 @@ describe KVEngine do
   end
 
   it 'throws exception on put when out of space' do
-    kv = KVEngine.new(ENGINE, PATH, SIZE)
+    kv = KVEngine.new(ENGINE, PATH)
     begin
       100000.times do |i|
         istr = i.to_s
@@ -243,7 +246,7 @@ describe KVEngine do
   end
 
   it 'uses blackhole engine' do
-    kv = KVEngine.new('blackhole', PATH, SIZE)
+    kv = KVEngine.new('blackhole', PATH)
     expect(kv.get('key1')).to be nil
     kv.put('key1', 'value123')
     expect(kv.get('key1')).to be nil
