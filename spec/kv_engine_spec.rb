@@ -240,7 +240,7 @@ describe KVEngine do
       end
       expect(true).to be false
     rescue RuntimeError => e
-      expect(e.message).to eql 'unable to put value'
+      expect(e.message).to start_with 'unable to put key:'
     end
     kv.close
   end

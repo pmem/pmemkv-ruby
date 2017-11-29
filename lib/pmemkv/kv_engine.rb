@@ -79,7 +79,7 @@ class KVEngine
     elsif result > 0
       buf.get_bytes(20 + keybytes, buf.get_int32(16)).force_encoding('utf-8')
     else
-      raise RuntimeError.new('unable to get value')
+      raise RuntimeError.new("unable to get key: #{key}")
     end
   end
 
@@ -95,7 +95,7 @@ class KVEngine
     buf.put_bytes(20 + keybytes, value, 0, valuebytes)
 
     result = Pmemkv.kvengine_put_ffi(buf)
-    raise RuntimeError.new('unable to put value') if result != 1
+    raise RuntimeError.new("unable to put key: #{key}") if result != 1
   end
 
   def remove(key)
