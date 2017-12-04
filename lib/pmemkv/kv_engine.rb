@@ -34,7 +34,7 @@ require 'ffi'
 
 module Pmemkv
   extend FFI::Library
-  ffi_lib '/usr/local/lib/libpmemkv.so'
+  ffi_lib ENV['PMEMKV_LIB'].nil? ? 'libpmemkv.so' : ENV['PMEMKV_LIB']
   attach_function :kvengine_open, [:string, :string, :size_t], :pointer
   attach_function :kvengine_close, [:pointer], :void
   attach_function :kvengine_get_ffi, [:pointer], :int8
@@ -44,11 +44,11 @@ end
 
 class KVEngine
 
-  def initialize(engine, path, size=8388608, limit=1024)
+  def initialize(engine, path, size = 8388608, limit = 1024)
     @closed = false
     @kv = Pmemkv.kvengine_open(engine, path, size)
     raise ArgumentError.new('unable to open persistent pool') if @kv.null?
-    @limit=limit
+    @limit = limit
   end
 
   def close
