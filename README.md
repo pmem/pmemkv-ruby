@@ -9,7 +9,7 @@ are logged as GitHub issues.*
 ## Dependencies
 
 * Ruby 2.2 or higher
-* [NVML](https://github.com/pmem/nvml) - native persistent memory libraries
+* [PMDK](https://github.com/pmem/pmdk) - native persistent memory libraries
 * [pmemkv](https://github.com/pmem/pmemkv) - native key/value library
 * [ffi](https://github.com/ffi/ffi) - for native library integration
 * Used only for testing:
