@@ -32,7 +32,7 @@
 
 require 'pmemkv/all'
 
-ENGINE = 'kvtree'
+ENGINE = 'kvtree2'
 PATH = '/dev/shm/pmemkv-ruby'
 SIZE = 1024 * 1024 * 8
 
