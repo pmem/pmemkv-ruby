@@ -35,20 +35,23 @@ require 'ffi'
 module Pmemkv
   extend FFI::Library
   ffi_lib ENV['PMEMKV_LIB'].nil? ? 'libpmemkv.so' : ENV['PMEMKV_LIB']
+  callback :kv_each_callback, [:pointer, :int32, :int32, :pointer, :pointer], :void
+  callback :kv_get_callback, [:pointer, :int32, :pointer], :void
   attach_function :kvengine_open, [:string, :string, :size_t], :pointer
   attach_function :kvengine_close, [:pointer], :void
-  attach_function :kvengine_get_ffi, [:pointer], :int8
-  attach_function :kvengine_put_ffi, [:pointer], :int8
-  attach_function :kvengine_remove_ffi, [:pointer], :int8
+  attach_function :kvengine_each, [:pointer, :pointer, :kv_each_callback], :void
+  attach_function :kvengine_exists, [:pointer, :int32, :pointer], :int8
+  attach_function :kvengine_get, [:pointer, :pointer, :int32, :pointer, :kv_get_callback], :void
+  attach_function :kvengine_put, [:pointer, :int32, :int32, :pointer, :pointer], :int8
+  attach_function :kvengine_remove, [:pointer, :int32, :pointer], :int8
 end
 
 class KVEngine
 
-  def initialize(engine, path, size = 8388608, limit = 1024)
+  def initialize(engine, path, size = 8388608)
     @closed = false
     @kv = Pmemkv.kvengine_open(engine, path, size)
     raise ArgumentError.new('unable to open persistent pool') if @kv.null?
-    @limit = limit
   end
 
   def close
@@ -62,63 +65,52 @@ class KVEngine
     @closed
   end
 
-  def get(key)
-    keybytes = key.bytesize
-
-    buf = engine_buffer
-    buf.put_pointer(0, @kv)
-    buf.put_int32(8, @limit)
-    buf.put_int32(12, keybytes)
-    buf.put_int32(16, 0)
-    buf.put_bytes(20, key, 0, keybytes)
-    buf.put_int32(20 + keybytes, 0)
-
-    result = Pmemkv.kvengine_get_ffi(buf)
-    if result == 0
-      nil
-    elsif result > 0
-      buf.get_bytes(20 + keybytes, buf.get_int32(16)).force_encoding('utf-8')
-    else
-      raise RuntimeError.new("unable to get key: #{key}")
+  def each
+    callback = lambda do |context, keybytes, valuebytes, key, value|
+      yield(key.get_bytes(0, keybytes), value.get_bytes(0, valuebytes))
     end
+    Pmemkv.kvengine_each(@kv, nil, callback)
+  end
+
+  def each_string(encoding = 'utf-8')
+    callback = lambda do |context, keybytes, valuebytes, key, value|
+      k = key.get_bytes(0, keybytes).force_encoding(encoding)
+      v = value.get_bytes(0, valuebytes).force_encoding(encoding)
+      yield(k, v)
+    end
+    Pmemkv.kvengine_each(@kv, nil, callback)
+  end
+
+  def exists(key)
+    Pmemkv.kvengine_exists(@kv, key.bytesize, key) == 1
+  end
+
+  def get(key)
+    result = nil
+    callback = lambda do |context, valuebytes, value|
+      result = value.get_bytes(0, valuebytes)
+    end
+    Pmemkv.kvengine_get(@kv, nil, key.bytesize, key, callback)
+    result
+  end
+
+  def get_string(key, encoding = 'utf-8')
+    result = nil
+    callback = lambda do |context, valuebytes, value|
+      result = value.get_bytes(0, valuebytes).force_encoding(encoding)
+    end
+    Pmemkv.kvengine_get(@kv, nil, key.bytesize, key, callback)
+    result
   end
 
   def put(key, value)
-    keybytes = key.bytesize
-    valuebytes = value.bytesize
-
-    buf = engine_buffer
-    buf.put_pointer(0, @kv)
-    buf.put_int32(12, keybytes)
-    buf.put_int32(16, valuebytes)
-    buf.put_bytes(20, key, 0, keybytes)
-    buf.put_bytes(20 + keybytes, value, 0, valuebytes)
-
-    result = Pmemkv.kvengine_put_ffi(buf)
+    result = Pmemkv.kvengine_put(@kv, key.bytesize, value.bytesize, key, value)
     raise RuntimeError.new("unable to put key: #{key}") if result != 1
   end
 
   def remove(key)
-    keybytes = key.bytesize
-
-    buf = engine_buffer
-    buf.put_pointer(0, @kv)
-    buf.put_int32(12, keybytes)
-    buf.put_bytes(20, key, 0, keybytes)
-    buf.put_int32(20 + keybytes, 0)
-
-    Pmemkv.kvengine_remove_ffi(buf)
-  end
-
-  private
-
-  def engine_buffer
-    buf = Thread.current[:kv_engine_buf]
-    unless buf
-      buf = FFI::MemoryPointer.new(:pointer, @limit)
-      Thread.current[:kv_engine_buf] = buf
-    end
-    buf
+    Pmemkv.kvengine_remove(@kv, key.bytesize, key)
+    # todo should be checking return value!
   end
 
 end

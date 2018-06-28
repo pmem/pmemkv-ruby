@@ -48,9 +48,27 @@ describe KVEngine do
     expect(File.exist?(PATH)).to be false
   end
 
+  it 'uses module to publish types' do
+    expect(KVEngine.class.equal?(Pmemkv::KVEngine.class)).to be true
+  end
+
+  it 'uses blackhole engine' do
+    kv = KVEngine.new('blackhole', PATH)
+    expect(kv.exists('key1')).to be false
+    expect(kv.get('key1')).to be nil
+    kv.put('key1', 'value123')
+    expect(kv.exists('key1')).to be false
+    expect(kv.get('key1')).to be nil
+    kv.remove('key1')
+    expect(kv.exists('key1')).to be false
+    expect(kv.get('key1')).to be nil
+    kv.close
+  end
+
   it 'creates instance' do
     size = 1024 * 1024 * 11
     kv = KVEngine.new(ENGINE, PATH, size)
+    expect(kv).not_to be nil
     expect(kv.closed?).to be false
     kv.close
     expect(kv.closed?).to be true
@@ -81,13 +99,16 @@ describe KVEngine do
 
   it 'gets missing key' do
     kv = KVEngine.new(ENGINE, PATH)
+    expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
     kv.close
   end
 
   it 'puts basic value' do
     kv = KVEngine.new(ENGINE, PATH)
+    expect(kv.exists('key1')).to be false
     kv.put('key1', 'value1')
+    expect(kv.exists('key1')).to be true
     expect(kv.get('key1')).to eql 'value1'
     kv.close
   end
@@ -95,6 +116,7 @@ describe KVEngine do
   it 'puts binary key' do
     kv = KVEngine.new(ENGINE, PATH)
     kv.put("A\0B\0\0C", 'value1')
+    expect(kv.exists("A\0B\0\0C")).to be true
     expect(kv.get("A\0B\0\0C")).to eql 'value1'
     kv.close
   end
@@ -119,8 +141,11 @@ describe KVEngine do
     kv.put('', 'empty')
     kv.put(' ', 'single-space')
     kv.put('\t\t', 'two-tab')
+    expect(kv.exists('')).to be true
     expect(kv.get('')).to eql 'empty'
+    expect(kv.exists(' ')).to be true
     expect(kv.get(' ')).to eql 'single-space'
+    expect(kv.exists('\t\t')).to be true
     expect(kv.get('\t\t')).to eql 'two-tab'
     kv.close
   end
@@ -141,8 +166,11 @@ describe KVEngine do
     kv.put('key1', 'value1')
     kv.put('key2', 'value2')
     kv.put('key3', 'value3')
+    expect(kv.exists('key1')).to be true
     expect(kv.get('key1')).to eql 'value1'
+    expect(kv.exists('key2')).to be true
     expect(kv.get('key2')).to eql 'value2'
+    expect(kv.exists('key3')).to be true
     expect(kv.get('key3')).to eql 'value3'
     kv.close
   end
@@ -162,6 +190,7 @@ describe KVEngine do
     kv = KVEngine.new(ENGINE, PATH)
     val = 'to remember, note, record'
     kv.put('记', val)
+    expect(kv.exists('记')).to be true
     expect(kv.get('记')).to eql val
     kv.close
   end
@@ -170,7 +199,7 @@ describe KVEngine do
     kv = KVEngine.new(ENGINE, PATH)
     val = '记 means to remember, note, record'
     kv.put('key1', val)
-    expect(kv.get('key1')).to eql val
+    expect(kv.get_string('key1')).to eql val
     kv.close
   end
 
@@ -181,8 +210,10 @@ describe KVEngine do
   it 'removes key and value' do
     kv = KVEngine.new(ENGINE, PATH)
     kv.put('key1', 'value1')
+    expect(kv.exists('key1')).to be true
     expect(kv.get('key1')).to eql 'value1'
     kv.remove('key1')
+    expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
     kv.close
   end
@@ -245,18 +276,25 @@ describe KVEngine do
     kv.close
   end
 
-  it 'uses blackhole engine' do
-    kv = KVEngine.new('blackhole', PATH)
-    expect(kv.get('key1')).to be nil
-    kv.put('key1', 'value123')
-    expect(kv.get('key1')).to be nil
-    kv.remove('key1')
-    expect(kv.get('key1')).to be nil
-    kv.close
-  end
-
-  it 'uses module to publish types' do
-    expect(KVEngine.class.equal?(Pmemkv::KVEngine.class)).to be true
-  end
+  # # WHEN ENABLE WHEN BTREE ENGINE IS DEFAULT
+  # it 'uses each test' do
+  #   kv = KVEngine.new(ENGINE, PATH)
+  #   kv.put('1', '2')
+  #   kv.put('RR', 'BBB')
+  #   result = ''
+  #   kv.each {|k, v| result += "<#{k}>,<#{v}>|"}
+  #   expect(result).to eql '<1>,<2>|<RR>,<BBB>|'
+  #   kv.close
+  # end
+  #
+  # it 'uses each string test' do
+  #   kv = KVEngine.new(ENGINE, PATH)
+  #   kv.put('one', '2')
+  #   kv.put('red', '记!')
+  #   result = ''
+  #   kv.each_string {|k, v| result += "<#{k}>,<#{v}>|"}
+  #   expect(result).to eql '<one>,<2>|<red>,<记!>|'
+  #   kv.close
+  # end
 
 end
