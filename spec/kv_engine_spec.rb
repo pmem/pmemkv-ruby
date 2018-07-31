@@ -54,9 +54,11 @@ describe KVEngine do
 
   it 'uses blackhole engine' do
     kv = KVEngine.new('blackhole', PATH)
+    expect(kv.count).to eql 0
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
     kv.put('key1', 'value123')
+    expect(kv.count).to eql 0
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
     kv.remove('key1')
@@ -276,25 +278,30 @@ describe KVEngine do
     kv.close
   end
 
-  # # WHEN ENABLE WHEN BTREE ENGINE IS DEFAULT
-  # it 'uses each test' do
-  #   kv = KVEngine.new(ENGINE, PATH)
-  #   kv.put('1', '2')
-  #   kv.put('RR', 'BBB')
-  #   result = ''
-  #   kv.each {|k, v| result += "<#{k}>,<#{v}>|"}
-  #   expect(result).to eql '<1>,<2>|<RR>,<BBB>|'
-  #   kv.close
-  # end
-  #
-  # it 'uses each string test' do
-  #   kv = KVEngine.new(ENGINE, PATH)
-  #   kv.put('one', '2')
-  #   kv.put('red', '记!')
-  #   result = ''
-  #   kv.each_string {|k, v| result += "<#{k}>,<#{v}>|"}
-  #   expect(result).to eql '<one>,<2>|<red>,<记!>|'
-  #   kv.close
-  # end
+  it 'uses each test' do
+    kv = KVEngine.new('btree', PATH) # todo switch back to ENGINE
+    expect(kv.count).to eql 0
+    kv.put('1', '2')
+    expect(kv.count).to eql 1
+    kv.put('RR', 'BBB')
+    expect(kv.count).to eql 2
+    result = ''
+    kv.each {|k, v| result += "<#{k}>,<#{v}>|"}
+    expect(result).to eql '<1>,<2>|<RR>,<BBB>|'
+    kv.close
+  end
+
+  it 'uses each string test' do
+    kv = KVEngine.new('btree', PATH) # todo switch back to ENGINE
+    expect(kv.count).to eql 0
+    kv.put('one', '2')
+    expect(kv.count).to eql 1
+    kv.put('red', '记!')
+    expect(kv.count).to eql 2
+    result = ''
+    kv.each_string {|k, v| result += "<#{k}>,<#{v}>|"}
+    expect(result).to eql '<one>,<2>|<red>,<记!>|'
+    kv.close
+  end
 
 end

@@ -39,6 +39,7 @@ module Pmemkv
   callback :kv_get_callback, [:pointer, :int32, :pointer], :void
   attach_function :kvengine_open, [:string, :string, :size_t], :pointer
   attach_function :kvengine_close, [:pointer], :void
+  attach_function :kvengine_count, [:pointer], :int64
   attach_function :kvengine_each, [:pointer, :pointer, :kv_each_callback], :void
   attach_function :kvengine_exists, [:pointer, :int32, :pointer], :int8
   attach_function :kvengine_get, [:pointer, :pointer, :int32, :pointer, :kv_get_callback], :void
@@ -63,6 +64,10 @@ class KVEngine
 
   def closed?
     @closed
+  end
+
+  def count
+    Pmemkv.kvengine_count(@kv)
   end
 
   def each
