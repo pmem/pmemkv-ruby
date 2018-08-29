@@ -44,7 +44,6 @@ module Pmemkv
   attach_function :kvengine_each, [:pointer, :pointer, :kv_each_callback], :void
   attach_function :kvengine_each_like, [:pointer, :int32, :pointer, :pointer, :kv_each_callback], :void
   attach_function :kvengine_exists, [:pointer, :int32, :pointer], :int8
-  attach_function :kvengine_exists_like, [:pointer, :int32, :pointer], :int8
   attach_function :kvengine_get, [:pointer, :pointer, :int32, :pointer, :kv_get_callback], :void
   attach_function :kvengine_put, [:pointer, :int32, :int32, :pointer, :pointer], :int8
   attach_function :kvengine_remove, [:pointer, :int32, :pointer], :int8
@@ -111,10 +110,6 @@ class KVEngine
 
   def exists(key)
     Pmemkv.kvengine_exists(@kv, key.bytesize, key) == 1
-  end
-
-  def exists_like(pattern)
-    Pmemkv.kvengine_exists_like(@kv, pattern.bytesize, pattern) == 1
   end
 
   def get(key)

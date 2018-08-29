@@ -32,7 +32,7 @@
 
 require 'pmemkv/all'
 
-ENGINE = 'kvtree2'
+ENGINE = 'kvtree3'
 PATH = '/dev/shm/pmemkv-ruby'
 SIZE = 1024 * 1024 * 8
 
@@ -279,11 +279,11 @@ describe KVEngine do
   end
 
   it 'uses each test' do
-    kv = KVEngine.new('btree', PATH) # todo switch back to ENGINE
+    kv = KVEngine.new(ENGINE, PATH)
     expect(kv.count).to eql 0
-    kv.put('1', '2')
-    expect(kv.count).to eql 1
     kv.put('RR', 'BBB')
+    expect(kv.count).to eql 1
+    kv.put('1', '2')
     expect(kv.count).to eql 2
     result = ''
     kv.each {|k, v| result += "<#{k}>,<#{v}>|"}
@@ -292,11 +292,11 @@ describe KVEngine do
   end
 
   it 'uses each string test' do
-    kv = KVEngine.new('btree', PATH) # todo switch back to ENGINE
+    kv = KVEngine.new(ENGINE, PATH)
     expect(kv.count).to eql 0
-    kv.put('one', '2')
-    expect(kv.count).to eql 1
     kv.put('red', '记!')
+    expect(kv.count).to eql 1
+    kv.put('one', '2')
     expect(kv.count).to eql 2
     result = ''
     kv.each_string {|k, v| result += "<#{k}>,<#{v}>|"}
@@ -305,21 +305,13 @@ describe KVEngine do
   end
 
   it 'uses like test' do
-    kv = KVEngine.new('btree', PATH) # todo switch back to ENGINE
-    kv.put('10', '10!')
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('11', '11!')
+    kv.put('10', '10!')
     kv.put('20', '20!')
     kv.put('21', '21!')
     kv.put('22', '22!')
     kv.put('30', '30!')
-
-    expect(kv.exists_like('.*')).to be true
-    expect(kv.exists_like('A')).to be false
-    expect(kv.exists_like('10')).to be true
-    expect(kv.exists_like('100')).to be false
-    expect(kv.exists_like('1.*')).to be true
-    expect(kv.exists_like('2.*')).to be true
-    expect(kv.exists_like('.*1')).to be true
 
     expect(kv.count_like('.*')).to eql 6
     expect(kv.count_like('A')).to eql 0
@@ -339,21 +331,10 @@ describe KVEngine do
   end
 
   it 'uses like with bad pattern test' do
-    kv = KVEngine.new('btree', PATH) # todo switch back to ENGINE
+    kv = KVEngine.new(ENGINE, PATH)
     kv.put('10', '10')
     kv.put('20', '20')
     kv.put('30', '30')
-
-    expect(kv.exists_like('')).to be false
-    expect(kv.exists_like('*')).to be false
-    expect(kv.exists_like('(')).to be false
-    expect(kv.exists_like(')')).to be false
-    expect(kv.exists_like('()')).to be false
-    expect(kv.exists_like(')(')).to be false
-    expect(kv.exists_like('[')).to be false
-    expect(kv.exists_like(']')).to be false
-    expect(kv.exists_like('[]')).to be false
-    expect(kv.exists_like('][')).to be false
 
     expect(kv.count_like('')).to eql 0
     expect(kv.count_like('*')).to eql 0
