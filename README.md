@@ -36,7 +36,7 @@ in this simple example.
 ```
 require 'pmemkv/all'
 
-kv = KVEngine.new('kvtree2', '/dev/shm/mykv')
+kv = KVEngine.new('kvtree3', '/dev/shm/mykv')
 kv.put('key1', 'value1')
 expect(kv.get('key1')).to eql 'value1'
 kv.remove('key1')
