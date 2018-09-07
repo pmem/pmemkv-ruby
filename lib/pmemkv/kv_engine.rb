@@ -35,7 +35,7 @@ require 'ffi'
 module Pmemkv
   extend FFI::Library
   ffi_lib ENV['PMEMKV_LIB'].nil? ? 'libpmemkv.so' : ENV['PMEMKV_LIB']
-  callback :kv_each_callback, [:pointer, :int32, :int32, :pointer, :pointer], :void
+  callback :kv_each_callback, [:pointer, :int32, :pointer, :int32, :pointer], :void
   callback :kv_get_callback, [:pointer, :int32, :pointer], :void
   attach_function :kvengine_open, [:string, :string, :size_t], :pointer
   attach_function :kvengine_close, [:pointer], :void
@@ -45,7 +45,7 @@ module Pmemkv
   attach_function :kvengine_each_like, [:pointer, :int32, :pointer, :pointer, :kv_each_callback], :void
   attach_function :kvengine_exists, [:pointer, :int32, :pointer], :int8
   attach_function :kvengine_get, [:pointer, :pointer, :int32, :pointer, :kv_get_callback], :void
-  attach_function :kvengine_put, [:pointer, :int32, :int32, :pointer, :pointer], :int8
+  attach_function :kvengine_put, [:pointer, :int32, :pointer, :int32, :pointer], :int8
   attach_function :kvengine_remove, [:pointer, :int32, :pointer], :int8
 end
 
@@ -77,21 +77,21 @@ class KVEngine
   end
 
   def each
-    callback = lambda do |context, keybytes, valuebytes, key, value|
+    callback = lambda do |context, keybytes, key, valuebytes, value|
       yield(key.get_bytes(0, keybytes), value.get_bytes(0, valuebytes))
     end
     Pmemkv.kvengine_each(@kv, nil, callback)
   end
 
   def each_like(pattern)
-    callback = lambda do |context, keybytes, valuebytes, key, value|
+    callback = lambda do |context, keybytes, key, valuebytes, value|
       yield(key.get_bytes(0, keybytes), value.get_bytes(0, valuebytes))
     end
     Pmemkv.kvengine_each_like(@kv, pattern.bytesize, pattern, nil, callback)
   end
 
   def each_string(encoding = 'utf-8')
-    callback = lambda do |context, keybytes, valuebytes, key, value|
+    callback = lambda do |context, keybytes, key, valuebytes, value|
       k = key.get_bytes(0, keybytes).force_encoding(encoding)
       v = value.get_bytes(0, valuebytes).force_encoding(encoding)
       yield(k, v)
@@ -100,7 +100,7 @@ class KVEngine
   end
 
   def each_string_like(pattern, encoding = 'utf-8')
-    callback = lambda do |context, keybytes, valuebytes, key, value|
+    callback = lambda do |context, keybytes, key, valuebytes, value|
       k = key.get_bytes(0, keybytes).force_encoding(encoding)
       v = value.get_bytes(0, valuebytes).force_encoding(encoding)
       yield(k, v)
@@ -131,7 +131,7 @@ class KVEngine
   end
 
   def put(key, value)
-    result = Pmemkv.kvengine_put(@kv, key.bytesize, value.bytesize, key, value)
+    result = Pmemkv.kvengine_put(@kv, key.bytesize, key, value.bytesize, value)
     raise RuntimeError.new("unable to put key: #{key}") if result != 1
   end
 
