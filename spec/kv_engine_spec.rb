@@ -278,6 +278,32 @@ describe KVEngine do
     kv.close
   end
 
+  it 'uses all test' do
+    kv = KVEngine.new(ENGINE, PATH)
+    expect(kv.count).to eql 0
+    kv.put('RR', 'BBB')
+    expect(kv.count).to eql 1
+    kv.put('1', '2')
+    expect(kv.count).to eql 2
+    result = ''
+    kv.all {|k| result += "<#{k}>,"}
+    expect(result).to eql '<1>,<RR>,'
+    kv.close
+  end
+
+  it 'uses all strings test' do
+    kv = KVEngine.new(ENGINE, PATH)
+    expect(kv.count).to eql 0
+    kv.put('记!', 'RR')
+    expect(kv.count).to eql 1
+    kv.put('2', 'one')
+    expect(kv.count).to eql 2
+    result = ''
+    kv.all_strings {|k| result += "<#{k}>,"}
+    expect(result).to eql '<2>,<记!>,'
+    kv.close
+  end
+
   it 'uses each test' do
     kv = KVEngine.new(ENGINE, PATH)
     expect(kv.count).to eql 0

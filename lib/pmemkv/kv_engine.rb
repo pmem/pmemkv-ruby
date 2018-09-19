@@ -35,10 +35,12 @@ require 'ffi'
 module Pmemkv
   extend FFI::Library
   ffi_lib ENV['PMEMKV_LIB'].nil? ? 'libpmemkv.so' : ENV['PMEMKV_LIB']
+  callback :kv_all_callback, [:pointer, :int32, :pointer], :void
   callback :kv_each_callback, [:pointer, :int32, :pointer, :int32, :pointer], :void
   callback :kv_get_callback, [:pointer, :int32, :pointer], :void
   attach_function :kvengine_open, [:string, :string, :size_t], :pointer
   attach_function :kvengine_close, [:pointer], :void
+  attach_function :kvengine_all, [:pointer, :pointer, :kv_all_callback], :void
   attach_function :kvengine_count, [:pointer], :int64
   attach_function :kvengine_count_like, [:pointer, :int32, :pointer], :int64
   attach_function :kvengine_each, [:pointer, :pointer, :kv_each_callback], :void
@@ -62,6 +64,20 @@ class KVEngine
       @closed = true
       Pmemkv.kvengine_close(@kv)
     end
+  end
+
+  def all
+    callback = lambda do |context, keybytes, key|
+      yield(key.get_bytes(0, keybytes))
+    end
+    Pmemkv.kvengine_all(@kv, nil, callback)
+  end
+
+  def all_strings(encoding = 'utf-8')
+    callback = lambda do |context, keybytes, key|
+      yield(key.get_bytes(0, keybytes).force_encoding(encoding))
+    end
+    Pmemkv.kvengine_all(@kv, nil, callback)
   end
 
   def closed?
