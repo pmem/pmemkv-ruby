@@ -61,7 +61,7 @@ describe KVEngine do
     expect(kv.count).to eql 0
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
-    kv.remove('key1')
+    expect(kv.remove('key1')).to be true
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
     kv.close
@@ -205,16 +205,13 @@ describe KVEngine do
     kv.close
   end
 
-  it 'puts very large value' do
-    # todo finish
-  end
-
   it 'removes key and value' do
     kv = KVEngine.new(ENGINE, PATH)
     kv.put('key1', 'value1')
     expect(kv.exists('key1')).to be true
     expect(kv.get('key1')).to eql 'value1'
-    kv.remove('key1')
+    expect(kv.remove('key1')).to be true
+    expect(kv.remove('key1')).to be false
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
     kv.close
