@@ -42,9 +42,7 @@ module Pmemkv
   attach_function :kvengine_close, [:pointer], :void
   attach_function :kvengine_all, [:pointer, :pointer, :kv_all_callback], :void
   attach_function :kvengine_count, [:pointer], :int64
-  attach_function :kvengine_count_like, [:pointer, :int32, :pointer], :int64
   attach_function :kvengine_each, [:pointer, :pointer, :kv_each_callback], :void
-  attach_function :kvengine_each_like, [:pointer, :int32, :pointer, :pointer, :kv_each_callback], :void
   attach_function :kvengine_exists, [:pointer, :int32, :pointer], :int8
   attach_function :kvengine_get, [:pointer, :pointer, :int32, :pointer, :kv_get_callback], :void
   attach_function :kvengine_put, [:pointer, :int32, :pointer, :int32, :pointer], :int8
@@ -88,22 +86,11 @@ class KVEngine
     Pmemkv.kvengine_count(@kv)
   end
 
-  def count_like(pattern)
-    Pmemkv.kvengine_count_like(@kv, pattern.bytesize, pattern)
-  end
-
   def each
     callback = lambda do |context, keybytes, key, valuebytes, value|
       yield(key.get_bytes(0, keybytes), value.get_bytes(0, valuebytes))
     end
     Pmemkv.kvengine_each(@kv, nil, callback)
-  end
-
-  def each_like(pattern)
-    callback = lambda do |context, keybytes, key, valuebytes, value|
-      yield(key.get_bytes(0, keybytes), value.get_bytes(0, valuebytes))
-    end
-    Pmemkv.kvengine_each_like(@kv, pattern.bytesize, pattern, nil, callback)
   end
 
   def each_string(encoding = 'utf-8')
@@ -113,15 +100,6 @@ class KVEngine
       yield(k, v)
     end
     Pmemkv.kvengine_each(@kv, nil, callback)
-  end
-
-  def each_string_like(pattern, encoding = 'utf-8')
-    callback = lambda do |context, keybytes, key, valuebytes, value|
-      k = key.get_bytes(0, keybytes).force_encoding(encoding)
-      v = value.get_bytes(0, valuebytes).force_encoding(encoding)
-      yield(k, v)
-    end
-    Pmemkv.kvengine_each_like(@kv, pattern.bytesize, pattern, nil, callback)
   end
 
   def exists(key)
