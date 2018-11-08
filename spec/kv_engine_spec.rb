@@ -35,6 +35,7 @@ require 'pmemkv/all'
 ENGINE = 'kvtree3'
 PATH = '/dev/shm/pmemkv-ruby'
 SIZE = 1024 * 1024 * 8
+CONFIG = "{\"path\":\"#{PATH}\",\"size\":#{SIZE}}"
 
 describe KVEngine do
 
@@ -53,7 +54,7 @@ describe KVEngine do
   end
 
   it 'uses blackhole engine' do
-    kv = KVEngine.new('blackhole', PATH)
+    kv = KVEngine.new('blackhole', CONFIG)
     expect(kv.count).to eql 0
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
@@ -64,82 +65,82 @@ describe KVEngine do
     expect(kv.remove('key1')).to be true
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
-    kv.close
+    kv.stop
   end
 
-  it 'creates instance' do
+  it 'starts engine' do
     size = 1024 * 1024 * 11
-    kv = KVEngine.new(ENGINE, PATH, size)
+    kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv).not_to be nil
-    expect(kv.closed?).to be false
-    kv.close
-    expect(kv.closed?).to be true
+    expect(kv.stopped?).to be false
+    kv.stop
+    expect(kv.stopped?).to be true
   end
 
-  it 'creates instance from existing pool' do
+  it 'starts engine with existing pool' do
     size = 1024 * 1024 * 13
-    kv = KVEngine.new(ENGINE, PATH, size)
-    kv.close
-    expect(kv.closed?).to be true
-    kv = KVEngine.new(ENGINE, PATH, 0)
-    expect(kv.closed?).to be false
-    kv.close
-    expect(kv.closed?).to be true
+    kv = KVEngine.new(ENGINE, CONFIG)
+    kv.stop
+    expect(kv.stopped?).to be true
+    kv = KVEngine.new(ENGINE, CONFIG)
+    expect(kv.stopped?).to be false
+    kv.stop
+    expect(kv.stopped?).to be true
   end
 
-  it 'closes instance multiple times' do
+  it 'stops engine multiple times' do
     size = 1024 * 1024 * 15
-    kv = KVEngine.new(ENGINE, PATH, size)
-    expect(kv.closed?).to be false
-    kv.close
-    expect(kv.closed?).to be true
-    kv.close
-    expect(kv.closed?).to be true
-    kv.close
-    expect(kv.closed?).to be true
+    kv = KVEngine.new(ENGINE, CONFIG)
+    expect(kv.stopped?).to be false
+    kv.stop
+    expect(kv.stopped?).to be true
+    kv.stop
+    expect(kv.stopped?).to be true
+    kv.stop
+    expect(kv.stopped?).to be true
   end
 
   it 'gets missing key' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
-    kv.close
+    kv.stop
   end
 
   it 'puts basic value' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv.exists('key1')).to be false
     kv.put('key1', 'value1')
     expect(kv.exists('key1')).to be true
     expect(kv.get('key1')).to eql 'value1'
-    kv.close
+    kv.stop
   end
 
   it 'puts binary key' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     kv.put("A\0B\0\0C", 'value1')
     expect(kv.exists("A\0B\0\0C")).to be true
     expect(kv.get("A\0B\0\0C")).to eql 'value1'
-    kv.close
+    kv.stop
   end
 
   it 'puts binary value' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     kv.put('key1', "A\0B\0\0C")
     expect(kv.get('key1')).to eql "A\0B\0\0C"
-    kv.close
+    kv.stop
   end
 
   it 'puts complex value' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     val = 'one\ttwo or <p>three</p>\n {four}   and ^five'
     kv.put('key1', val)
     expect(kv.get('key1')).to eql val
-    kv.close
+    kv.stop
   end
 
   it 'puts empty key' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     kv.put('', 'empty')
     kv.put(' ', 'single-space')
     kv.put('\t\t', 'two-tab')
@@ -149,22 +150,22 @@ describe KVEngine do
     expect(kv.get(' ')).to eql 'single-space'
     expect(kv.exists('\t\t')).to be true
     expect(kv.get('\t\t')).to eql 'two-tab'
-    kv.close
+    kv.stop
   end
 
   it 'puts empty value' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     kv.put('empty', '')
     kv.put('single-space', ' ')
     kv.put('two-tab', '\t\t')
     expect(kv.get('empty')).to eql ''
     expect(kv.get('single-space')).to eql ' '
     expect(kv.get('two-tab')).to eql '\t\t'
-    kv.close
+    kv.stop
   end
 
   it 'puts multiple values' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     kv.put('key1', 'value1')
     kv.put('key2', 'value2')
     kv.put('key3', 'value3')
@@ -174,39 +175,39 @@ describe KVEngine do
     expect(kv.get('key2')).to eql 'value2'
     expect(kv.exists('key3')).to be true
     expect(kv.get('key3')).to eql 'value3'
-    kv.close
+    kv.stop
   end
 
   it 'puts overwriting existing value' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     kv.put('key1', 'value1')
     expect(kv.get('key1')).to eql 'value1'
     kv.put('key1', 'value123')
     expect(kv.get('key1')).to eql 'value123'
     kv.put('key1', 'asdf')
     expect(kv.get('key1')).to eql 'asdf'
-    kv.close
+    kv.stop
   end
 
   it 'puts utf-8 key' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     val = 'to remember, note, record'
     kv.put('记', val)
     expect(kv.exists('记')).to be true
     expect(kv.get('记')).to eql val
-    kv.close
+    kv.stop
   end
 
   it 'puts utf-8 value' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     val = '记 means to remember, note, record'
     kv.put('key1', val)
     expect(kv.get_string('key1')).to eql val
-    kv.close
+    kv.stop
   end
 
   it 'removes key and value' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     kv.put('key1', 'value1')
     expect(kv.exists('key1')).to be true
     expect(kv.get('key1')).to eql 'value1'
@@ -214,55 +215,55 @@ describe KVEngine do
     expect(kv.remove('key1')).to be false
     expect(kv.exists('key1')).to be false
     expect(kv.get('key1')).to be nil
-    kv.close
+    kv.stop
   end
 
-  it 'throws exception on create when engine is invalid' do
+  it 'throws exception on start when engine is invalid' do
     kv = nil
     begin
-      kv = KVEngine.new('nope.nope', PATH)
+      kv = KVEngine.new('nope.nope', CONFIG)
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to open persistent pool'
+      expect(e.message).to eql 'unable to start engine'
     end
     expect(kv).to be nil
   end
 
-  it 'throws exception on create when path is invalid' do
+  it 'throws exception on start when path is invalid' do
     kv = nil
     begin
-      kv = KVEngine.new(ENGINE, '/tmp/123/234/345/456/567/678/nope.nope')
+      kv = KVEngine.new(ENGINE, "{\"path\":\"/tmp/123/234/345/456/567/678/nope.nope\",\"size\":#{SIZE}}")
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to open persistent pool'
+      expect(e.message).to eql 'unable to start engine'
     end
     expect(kv).to be nil
   end
 
-  it 'throws exception on create with huge size' do
+  it 'throws exception on start with huge size' do
     kv = nil
     begin
-      kv = KVEngine.new(ENGINE, PATH, 9223372036854775807) # 9.22 exabytes
+      kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":9223372036854775807}") # 9.22 exabytes
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to open persistent pool'
+      expect(e.message).to eql 'unable to start engine'
     end
     expect(kv).to be nil
   end
 
-  it 'throws exception on create with tiny size' do
+  it 'throws exception on start with tiny size' do
     kv = nil
     begin
-      kv = KVEngine.new(ENGINE, PATH, SIZE - 1) # too small
+      kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":#{SIZE - 1}}") # too small
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to open persistent pool'
+      expect(e.message).to eql 'unable to start engine'
     end
     expect(kv).to be nil
   end
 
   it 'throws exception on put when out of space' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     begin
       100000.times do |i|
         istr = i.to_s
@@ -272,11 +273,11 @@ describe KVEngine do
     rescue RuntimeError => e
       expect(e.message).to start_with 'unable to put key:'
     end
-    kv.close
+    kv.stop
   end
 
   it 'uses all test' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv.count).to eql 0
     kv.put('RR', 'BBB')
     expect(kv.count).to eql 1
@@ -285,11 +286,11 @@ describe KVEngine do
     result = ''
     kv.all {|k| result += "<#{k}>,"}
     expect(result).to eql '<1>,<RR>,'
-    kv.close
+    kv.stop
   end
 
   it 'uses all strings test' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv.count).to eql 0
     kv.put('记!', 'RR')
     expect(kv.count).to eql 1
@@ -298,11 +299,11 @@ describe KVEngine do
     result = ''
     kv.all_strings {|k| result += "<#{k}>,"}
     expect(result).to eql '<2>,<记!>,'
-    kv.close
+    kv.stop
   end
 
   it 'uses each test' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv.count).to eql 0
     kv.put('RR', 'BBB')
     expect(kv.count).to eql 1
@@ -311,11 +312,11 @@ describe KVEngine do
     result = ''
     kv.each {|k, v| result += "<#{k}>,<#{v}>|"}
     expect(result).to eql '<1>,<2>|<RR>,<BBB>|'
-    kv.close
+    kv.stop
   end
 
   it 'uses each string test' do
-    kv = KVEngine.new(ENGINE, PATH)
+    kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv.count).to eql 0
     kv.put('red', '记!')
     expect(kv.count).to eql 1
@@ -324,7 +325,7 @@ describe KVEngine do
     result = ''
     kv.each_string {|k, v| result += "<#{k}>,<#{v}>|"}
     expect(result).to eql '<one>,<2>|<red>,<记!>|'
-    kv.close
+    kv.stop
   end
 
 end

@@ -38,8 +38,8 @@ module Pmemkv
   callback :kv_all_callback, [:pointer, :int32, :pointer], :void
   callback :kv_each_callback, [:pointer, :int32, :pointer, :int32, :pointer], :void
   callback :kv_get_callback, [:pointer, :int32, :pointer], :void
-  attach_function :kvengine_open, [:string, :string, :size_t], :pointer
-  attach_function :kvengine_close, [:pointer], :void
+  attach_function :kvengine_start, [:string, :string], :pointer
+  attach_function :kvengine_stop, [:pointer], :void
   attach_function :kvengine_all, [:pointer, :pointer, :kv_all_callback], :void
   attach_function :kvengine_count, [:pointer], :int64
   attach_function :kvengine_each, [:pointer, :pointer, :kv_each_callback], :void
@@ -51,16 +51,16 @@ end
 
 class KVEngine
 
-  def initialize(engine, path, size = 8388608)
-    @closed = false
-    @kv = Pmemkv.kvengine_open(engine, path, size)
-    raise ArgumentError.new('unable to open persistent pool') if @kv.null?
+  def initialize(engine, config)
+    @stopped = false
+    @kv = Pmemkv.kvengine_start(engine, config)
+    raise ArgumentError.new('unable to start engine') if @kv.null?
   end
 
-  def close
-    unless @closed
-      @closed = true
-      Pmemkv.kvengine_close(@kv)
+  def stop
+    unless @stopped
+      @stopped = true
+      Pmemkv.kvengine_stop(@kv)
     end
   end
 
@@ -78,8 +78,8 @@ class KVEngine
     Pmemkv.kvengine_all(@kv, nil, callback)
   end
 
-  def closed?
-    @closed
+  def stopped?
+    @stopped
   end
 
   def count
