@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.summary = 'Ruby bindings for pmemkv'
   spec.description = spec.summary
   spec.homepage = 'https://github.com/pmem/pmemkv-ruby'
-  spec.license = 'Apache-2.0'
+  spec.license = 'BSD-3-Clause'
   spec.authors = ['RobDickinson']
 
   spec.files = `git ls-files -z ./lib`.split("\x0")
