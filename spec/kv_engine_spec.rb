@@ -218,6 +218,28 @@ describe KVEngine do
     kv.stop
   end
 
+  it 'throws exception on start when config is empty' do
+    kv = nil
+    begin
+      kv = KVEngine.new(ENGINE, '{}')
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to start engine'
+    end
+    expect(kv).to be nil
+  end
+
+  it 'throws exception on start when config is malformed' do
+    kv = nil
+    begin
+      kv = KVEngine.new(ENGINE, '{')
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to start engine'
+    end
+    expect(kv).to be nil
+  end
+
   it 'throws exception on start when engine is invalid' do
     kv = nil
     begin
@@ -233,6 +255,39 @@ describe KVEngine do
     kv = nil
     begin
       kv = KVEngine.new(ENGINE, "{\"path\":\"/tmp/123/234/345/456/567/678/nope.nope\",\"size\":#{SIZE}}")
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to start engine'
+    end
+    expect(kv).to be nil
+  end
+
+  it 'throws exception on start when path is missing' do
+    kv = nil
+    begin
+      kv = KVEngine.new(ENGINE, "{\"size\":#{SIZE}}")
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to start engine'
+    end
+    expect(kv).to be nil
+  end
+
+  it 'throws exception on start when path is wrong type' do
+    kv = nil
+    begin
+      kv = KVEngine.new(ENGINE, '{"path":1234}')
+      expect(true).to be false
+    rescue ArgumentError => e
+      expect(e.message).to eql 'unable to start engine'
+    end
+    expect(kv).to be nil
+  end
+
+  it 'throws exception on start when size is wrong type' do
+    kv = nil
+    begin
+      kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":\"#{SIZE}\"}")
       expect(true).to be false
     rescue ArgumentError => e
       expect(e.message).to eql 'unable to start engine'
