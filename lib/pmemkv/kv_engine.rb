@@ -126,12 +126,12 @@ class KVEngine
 
   def put(key, value)
     result = Pmemkv.kvengine_put(@kv, key.bytesize, key, value.bytesize, value)
-    raise RuntimeError.new("unable to put key: #{key}") if result < 0
+    raise RuntimeError.new("Unable to put key") if result < 0
   end
 
   def remove(key)
     result = Pmemkv.kvengine_remove(@kv, key.bytesize, key)
-    raise RuntimeError.new("unable to remove key: #{key}") if result < 0
+    raise RuntimeError.new("Unable to remove key") if result < 0
     (result == 1)
   end
 
