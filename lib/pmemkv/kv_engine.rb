@@ -38,7 +38,8 @@ module Pmemkv
   callback :kv_all_callback, [:pointer, :int32, :pointer], :void
   callback :kv_each_callback, [:pointer, :int32, :pointer, :int32, :pointer], :void
   callback :kv_get_callback, [:pointer, :int32, :pointer], :void
-  attach_function :kvengine_start, [:string, :string], :pointer
+  callback :kv_start_failure_callback, [:pointer, :string, :string, :string], :void
+  attach_function :kvengine_start, [:pointer, :string, :string, :kv_start_failure_callback], :pointer
   attach_function :kvengine_stop, [:pointer], :void
   attach_function :kvengine_all, [:pointer, :pointer, :kv_all_callback], :void
   attach_function :kvengine_count, [:pointer], :int64
@@ -53,8 +54,10 @@ class KVEngine
 
   def initialize(engine, config)
     @stopped = false
-    @kv = Pmemkv.kvengine_start(engine, config)
-    raise ArgumentError.new('unable to start engine') if @kv.null?
+    callback = lambda do |context, engine, config, msg|
+      raise ArgumentError.new(msg)
+    end
+    @kv = Pmemkv.kvengine_start(nil, engine, config, callback)
   end
 
   def stop

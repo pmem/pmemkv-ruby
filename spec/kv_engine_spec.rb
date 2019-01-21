@@ -224,7 +224,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, '{}')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Config does not include valid path string'
     end
     expect(kv).to be nil
   end
@@ -235,7 +235,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, '{')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Config could not be parsed as JSON'
     end
     expect(kv).to be nil
   end
@@ -246,7 +246,7 @@ describe KVEngine do
       kv = KVEngine.new('nope.nope', CONFIG)
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Unknown engine name'
     end
     expect(kv).to be nil
   end
@@ -257,7 +257,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, "{\"path\":\"/tmp/123/234/345/456/567/678/nope.nope\",\"size\":#{SIZE}}")
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Failed creating pool'
     end
     expect(kv).to be nil
   end
@@ -268,7 +268,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, "{\"size\":#{SIZE}}")
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Config does not include valid path string'
     end
     expect(kv).to be nil
   end
@@ -279,7 +279,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, '{"path":1234}')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Config does not include valid path string'
     end
     expect(kv).to be nil
   end
@@ -290,7 +290,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":\"#{SIZE}\"}")
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Config does not include valid size integer'
     end
     expect(kv).to be nil
   end
@@ -301,7 +301,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":9223372036854775807}") # 9.22 exabytes
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Failed creating pool'
     end
     expect(kv).to be nil
   end
@@ -312,7 +312,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":#{SIZE - 1}}") # too small
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'unable to start engine'
+      expect(e.message).to eql 'Failed creating pool'
     end
     expect(kv).to be nil
   end
