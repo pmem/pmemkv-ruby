@@ -32,22 +32,10 @@
 
 require 'pmemkv/all'
 
-ENGINE = 'kvtree3'
-PATH = '/dev/shm/pmemkv-ruby'
-SIZE = 1024 * 1024 * 8
-CONFIG = "{\"path\":\"#{PATH}\",\"size\":#{SIZE}}"
+ENGINE = 'vmap'
+CONFIG = "{\"path\":\"/dev/shm\"}"
 
 describe KVEngine do
-
-  before do
-    File.delete(PATH) if File.exist?(PATH)
-    expect(File.exist?(PATH)).to be false
-  end
-
-  after do
-    File.delete(PATH) if File.exist?(PATH)
-    expect(File.exist?(PATH)).to be false
-  end
 
   it 'uses module to publish types' do
     expect(KVEngine.class.equal?(Pmemkv::KVEngine.class)).to be true
@@ -69,7 +57,6 @@ describe KVEngine do
   end
 
   it 'starts engine' do
-    size = 1024 * 1024 * 11
     kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv).not_to be nil
     expect(kv.stopped?).to be false
@@ -77,19 +64,7 @@ describe KVEngine do
     expect(kv.stopped?).to be true
   end
 
-  it 'starts engine with existing pool' do
-    size = 1024 * 1024 * 13
-    kv = KVEngine.new(ENGINE, CONFIG)
-    kv.stop
-    expect(kv.stopped?).to be true
-    kv = KVEngine.new(ENGINE, CONFIG)
-    expect(kv.stopped?).to be false
-    kv.stop
-    expect(kv.stopped?).to be true
-  end
-
   it 'stops engine multiple times' do
-    size = 1024 * 1024 * 15
     kv = KVEngine.new(ENGINE, CONFIG)
     expect(kv.stopped?).to be false
     kv.stop
@@ -254,21 +229,10 @@ describe KVEngine do
   it 'throws exception on start when path is invalid' do
     kv = nil
     begin
-      kv = KVEngine.new(ENGINE, "{\"path\":\"/tmp/123/234/345/456/567/678/nope.nope\",\"size\":#{SIZE}}")
+      kv = KVEngine.new(ENGINE, "{\"path\":\"/tmp/123/234/345/456/567/678/nope.nope\"}")
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'Failed creating pool'
-    end
-    expect(kv).to be nil
-  end
-
-  it 'throws exception on start when path is missing' do
-    kv = nil
-    begin
-      kv = KVEngine.new(ENGINE, "{\"size\":#{SIZE}}")
-      expect(true).to be false
-    rescue ArgumentError => e
-      expect(e.message).to eql 'Config does not include valid path string'
+      expect(e.message).to eql 'Config path is not an existing directory'
     end
     expect(kv).to be nil
   end
@@ -282,53 +246,6 @@ describe KVEngine do
       expect(e.message).to eql 'Config does not include valid path string'
     end
     expect(kv).to be nil
-  end
-
-  it 'throws exception on start when size is wrong type' do
-    kv = nil
-    begin
-      kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":\"#{SIZE}\"}")
-      expect(true).to be false
-    rescue ArgumentError => e
-      expect(e.message).to eql 'Config does not include valid size integer'
-    end
-    expect(kv).to be nil
-  end
-
-  it 'throws exception on start with huge size' do
-    kv = nil
-    begin
-      kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":9223372036854775807}") # 9.22 exabytes
-      expect(true).to be false
-    rescue ArgumentError => e
-      expect(e.message).to eql 'Failed creating pool'
-    end
-    expect(kv).to be nil
-  end
-
-  it 'throws exception on start with tiny size' do
-    kv = nil
-    begin
-      kv = KVEngine.new(ENGINE, "{\"path\":\"#{PATH}\",\"size\":#{SIZE - 1}}") # too small
-      expect(true).to be false
-    rescue ArgumentError => e
-      expect(e.message).to eql 'Failed creating pool'
-    end
-    expect(kv).to be nil
-  end
-
-  it 'throws exception on put when out of space' do
-    kv = KVEngine.new(ENGINE, CONFIG)
-    begin
-      100000.times do |i|
-        istr = i.to_s
-        kv.put(istr, istr)
-      end
-      expect(true).to be false
-    rescue RuntimeError => e
-      expect(e.message).to eql 'Unable to put key'
-    end
-    kv.stop
   end
 
   it 'uses all test' do
