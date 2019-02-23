@@ -250,53 +250,213 @@ describe KVEngine do
 
   it 'uses all test' do
     kv = KVEngine.new(ENGINE, CONFIG)
-    expect(kv.count).to eql 0
-    kv.put('RR', 'BBB')
-    expect(kv.count).to eql 1
-    kv.put('1', '2')
-    expect(kv.count).to eql 2
-    result = ''
-    kv.all {|k| result += "<#{k}>,"}
-    expect(result).to eql '<1>,<RR>,'
+    kv.put('1', 'one')
+    kv.put('2', 'two')
+
+    x = ''
+    kv.all {|k| x += "<#{k}>,"}
+    expect(x).to eql '<1>,<2>,'
+
+    kv.put('记!', 'RR')
+    x = ''
+    kv.all_strings {|k| x += "<#{k}>,"}
+    expect(x).to eql '<1>,<2>,<记!>,'
+
     kv.stop
   end
 
-  it 'uses all strings test' do
+  it 'uses all above test' do
     kv = KVEngine.new(ENGINE, CONFIG)
-    expect(kv.count).to eql 0
+    kv.put('A', '1')
+    kv.put('AB', '2')
+    kv.put('AC', '3')
+    kv.put('B', '4')
+    kv.put('BB', '5')
+    kv.put('BC', '6')
+
+    x = ''
+    kv.all_above('B') {|k| x += "#{k},"}
+    expect(x).to eql 'BB,BC,'
+
     kv.put('记!', 'RR')
-    expect(kv.count).to eql 1
-    kv.put('2', 'one')
-    expect(kv.count).to eql 2
-    result = ''
-    kv.all_strings {|k| result += "<#{k}>,"}
-    expect(result).to eql '<2>,<记!>,'
+    x = ''
+    kv.all_strings_above('') {|k| x += "#{k},"}
+    expect(x).to eql 'A,AB,AC,B,BB,BC,记!,'
+
+    kv.stop
+  end
+
+  it 'uses all below test' do
+    kv = KVEngine.new(ENGINE, CONFIG)
+    kv.put('A', '1')
+    kv.put('AB', '2')
+    kv.put('AC', '3')
+    kv.put('B', '4')
+    kv.put('BB', '5')
+    kv.put('BC', '6')
+
+    x = ''
+    kv.all_below('B') {|k| x += "#{k},"}
+    expect(x).to eql 'A,AB,AC,'
+
+    kv.put('记!', 'RR')
+    x = ''
+    kv.all_strings_below("\uFFFF") {|k| x += "#{k},"}
+    expect(x).to eql 'A,AB,AC,B,BB,BC,记!,'
+
+    kv.stop
+  end
+
+  it 'uses all between test' do
+    kv = KVEngine.new(ENGINE, CONFIG)
+    kv.put('A', '1')
+    kv.put('AB', '2')
+    kv.put('AC', '3')
+    kv.put('B', '4')
+    kv.put('BB', '5')
+    kv.put('BC', '6')
+
+    x = ''
+    kv.all_between('A', 'B') {|k| x += "#{k},"}
+    expect(x).to eql 'AB,AC,'
+
+    kv.put('记!', 'RR')
+    x = ''
+    kv.all_strings_between('B', "\xFF") {|k| x += "#{k},"}
+    expect(x).to eql 'BB,BC,记!,'
+
+    x = ''
+    kv.all_between('', '') {|k| x += "#{k},"}
+    kv.all_between('A', 'A') {|k| x += "#{k},"}
+    kv.all_between('B', 'A') {|k| x += "#{k},"}
+    expect(x).to eql ''
+
+    kv.stop
+  end
+
+  it 'uses count test' do
+    kv = KVEngine.new(ENGINE, CONFIG)
+    kv.put('A', '1')
+    kv.put('AB', '2')
+    kv.put('AC', '3')
+    kv.put('B', '4')
+    kv.put('BB', '5')
+    kv.put('BC', '6')
+    kv.put('BD', '7')
+    expect(kv.count).to eql 7
+
+    expect(kv.count_above('')).to eql 7
+    expect(kv.count_above('A')).to eql 6
+    expect(kv.count_above('B')).to eql 3
+    expect(kv.count_above('BC')).to eql 1
+    expect(kv.count_above('BD')).to eql 0
+    expect(kv.count_above('Z')).to eql 0
+
+    expect(kv.count_below('')).to eql 0
+    expect(kv.count_below('A')).to eql 0
+    expect(kv.count_below('B')).to eql 3
+    expect(kv.count_below('BD')).to eql 6
+    expect(kv.count_below('ZZZZZ')).to eql 7
+
+    expect(kv.count_between('', 'ZZZZ')).to eql 7
+    expect(kv.count_between('', 'A')).to eql 0
+    expect(kv.count_between('', 'B')).to eql 3
+    expect(kv.count_between('A', 'B')).to eql 2
+    expect(kv.count_between('B', 'ZZZZ')).to eql 3
+
+    expect(kv.count_between('', '')).to eql 0
+    expect(kv.count_between('A', 'A')).to eql 0
+    expect(kv.count_between('AC', 'A')).to eql 0
+    expect(kv.count_between('B', 'A')).to eql 0
+    expect(kv.count_between('BD', 'A')).to eql 0
+    expect(kv.count_between('ZZZ', 'B')).to eql 0
+
     kv.stop
   end
 
   it 'uses each test' do
     kv = KVEngine.new(ENGINE, CONFIG)
-    expect(kv.count).to eql 0
-    kv.put('RR', 'BBB')
-    expect(kv.count).to eql 1
-    kv.put('1', '2')
-    expect(kv.count).to eql 2
-    result = ''
-    kv.each {|k, v| result += "<#{k}>,<#{v}>|"}
-    expect(result).to eql '<1>,<2>|<RR>,<BBB>|'
+    kv.put('1', 'one')
+    kv.put('2', 'two')
+
+    x = ''
+    kv.each {|k, v| x += "<#{k}>,<#{v}>|"}
+    expect(x).to eql '<1>,<one>|<2>,<two>|'
+
+    kv.put('记!', 'RR')
+    x = ''
+    kv.each_string {|k, v| x += "<#{k}>,<#{v}>|"}
+    expect(x).to eql '<1>,<one>|<2>,<two>|<记!>,<RR>|'
+
     kv.stop
   end
 
-  it 'uses each string test' do
+  it 'uses each above test' do
     kv = KVEngine.new(ENGINE, CONFIG)
-    expect(kv.count).to eql 0
-    kv.put('red', '记!')
-    expect(kv.count).to eql 1
-    kv.put('one', '2')
-    expect(kv.count).to eql 2
-    result = ''
-    kv.each_string {|k, v| result += "<#{k}>,<#{v}>|"}
-    expect(result).to eql '<one>,<2>|<red>,<记!>|'
+    kv.put('A', '1')
+    kv.put('AB', '2')
+    kv.put('AC', '3')
+    kv.put('B', '4')
+    kv.put('BB', '5')
+    kv.put('BC', '6')
+
+    x = ''
+    kv.each_above('B') {|k, v| x += "#{k},#{v}|"}
+    expect(x).to eql 'BB,5|BC,6|'
+
+    kv.put('记!', 'RR')
+    x = ''
+    kv.each_string_above('') {|k, v| x += "#{k},#{v}|"}
+    expect(x).to eql 'A,1|AB,2|AC,3|B,4|BB,5|BC,6|记!,RR|'
+
+    kv.stop
+  end
+
+  it 'uses each below test' do
+    kv = KVEngine.new(ENGINE, CONFIG)
+    kv.put('A', '1')
+    kv.put('AB', '2')
+    kv.put('AC', '3')
+    kv.put('B', '4')
+    kv.put('BB', '5')
+    kv.put('BC', '6')
+
+    x = ''
+    kv.each_below('AC') {|k, v| x += "#{k},#{v}|"}
+    expect(x).to eql 'A,1|AB,2|'
+
+    kv.put('记!', 'RR')
+    x = ''
+    kv.each_string_below("\xFF") {|k, v| x += "#{k},#{v}|"}
+    expect(x).to eql 'A,1|AB,2|AC,3|B,4|BB,5|BC,6|记!,RR|'
+
+    kv.stop
+  end
+
+  it 'uses each between test' do
+    kv = KVEngine.new(ENGINE, CONFIG)
+    kv.put('A', '1')
+    kv.put('AB', '2')
+    kv.put('AC', '3')
+    kv.put('B', '4')
+    kv.put('BB', '5')
+    kv.put('BC', '6')
+
+    x = ''
+    kv.each_between('A', 'B') {|k, v| x += "#{k},#{v}|"}
+    expect(x).to eql 'AB,2|AC,3|'
+
+    kv.put('记!', 'RR')
+    x = ''
+    kv.each_string_between('B', "\xFF") {|k, v| x += "#{k},#{v}|"}
+    expect(x).to eql 'BB,5|BC,6|记!,RR|'
+
+    x = ''
+    kv.each_between('', '') {|k, v| x += "#{k},#{v}|"}
+    kv.each_between('A', 'A') {|k, v| x += "#{k},#{v}|"}
+    kv.each_between('B', 'A') {|k, v| x += "#{k},#{v}|"}
+    expect(x).to eql ''
+
     kv.stop
   end
 

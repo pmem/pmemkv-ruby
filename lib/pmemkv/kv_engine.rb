@@ -42,8 +42,17 @@ module Pmemkv
   attach_function :kvengine_start, [:pointer, :string, :string, :kv_start_failure_callback], :pointer
   attach_function :kvengine_stop, [:pointer], :void
   attach_function :kvengine_all, [:pointer, :pointer, :kv_all_callback], :void
+  attach_function :kvengine_all_above, [:pointer, :pointer, :int32, :pointer, :kv_all_callback], :void
+  attach_function :kvengine_all_below, [:pointer, :pointer, :int32, :pointer, :kv_all_callback], :void
+  attach_function :kvengine_all_between, [:pointer, :pointer, :int32, :pointer, :int32, :pointer, :kv_all_callback], :void
   attach_function :kvengine_count, [:pointer], :int64
+  attach_function :kvengine_count_above, [:pointer, :int32, :pointer], :int64
+  attach_function :kvengine_count_below, [:pointer, :int32, :pointer], :int64
+  attach_function :kvengine_count_between, [:pointer, :int32, :pointer, :int32, :pointer], :int64
   attach_function :kvengine_each, [:pointer, :pointer, :kv_each_callback], :void
+  attach_function :kvengine_each_above, [:pointer, :pointer, :int32, :pointer, :kv_each_callback], :void
+  attach_function :kvengine_each_below, [:pointer, :pointer, :int32, :pointer, :kv_each_callback], :void
+  attach_function :kvengine_each_between, [:pointer, :pointer, :int32, :pointer, :int32, :pointer, :kv_each_callback], :void
   attach_function :kvengine_exists, [:pointer, :int32, :pointer], :int8
   attach_function :kvengine_get, [:pointer, :pointer, :int32, :pointer, :kv_get_callback], :void
   attach_function :kvengine_put, [:pointer, :int32, :pointer, :int32, :pointer], :int8
@@ -68,17 +77,59 @@ class KVEngine
   end
 
   def all
-    callback = lambda do |context, keybytes, key|
-      yield(key.get_bytes(0, keybytes))
+    callback = lambda do |context, kb, k|
+      yield(k.get_bytes(0, kb))
     end
     Pmemkv.kvengine_all(@kv, nil, callback)
   end
 
+  def all_above(key)
+    callback = lambda do |context, kb, k|
+      yield(k.get_bytes(0, kb))
+    end
+    Pmemkv.kvengine_all_above(@kv, nil, key.bytesize, key, callback)
+  end
+
+  def all_below(key)
+    callback = lambda do |context, kb, k|
+      yield(k.get_bytes(0, kb))
+    end
+    Pmemkv.kvengine_all_below(@kv, nil, key.bytesize, key, callback)
+  end
+
+  def all_between(key1, key2)
+    callback = lambda do |context, kb, k|
+      yield(k.get_bytes(0, kb))
+    end
+    Pmemkv.kvengine_all_between(@kv, nil, key1.bytesize, key1, key2.bytesize, key2, callback)
+  end
+
   def all_strings(encoding = 'utf-8')
-    callback = lambda do |context, keybytes, key|
-      yield(key.get_bytes(0, keybytes).force_encoding(encoding))
+    callback = lambda do |context, kb, k|
+      yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
     Pmemkv.kvengine_all(@kv, nil, callback)
+  end
+
+  def all_strings_above(key, encoding = 'utf-8')
+    callback = lambda do |context, kb, k|
+      yield(k.get_bytes(0, kb).force_encoding(encoding))
+    end
+    Pmemkv.kvengine_all_above(@kv, nil, key.bytesize, key, callback)
+  end
+
+  def all_strings_below(key, encoding = 'utf-8')
+    callback = lambda do |context, kb, k|
+      yield(k.get_bytes(0, kb).force_encoding(encoding))
+    end
+    Pmemkv.kvengine_all_below(@kv, nil, key.bytesize, key, callback)
+  end
+
+  def all_strings_between(key1, key2, encoding = 'utf-8')
+    callback = lambda do |context, kb, k|
+      yield(k.get_bytes(0, kb).force_encoding(encoding))
+    end
+    Pmemkv.kvengine_all_between(@kv, nil, key1.bytesize, key1, key2.bytesize, key2, callback)
   end
 
   def stopped?
@@ -89,20 +140,80 @@ class KVEngine
     Pmemkv.kvengine_count(@kv)
   end
 
+  def count_above(key)
+    Pmemkv.kvengine_count_above(@kv, key.bytesize, key)
+  end
+
+  def count_below(key)
+    Pmemkv.kvengine_count_below(@kv, key.bytesize, key)
+  end
+
+  def count_between(key1, key2)
+    Pmemkv.kvengine_count_between(@kv, key1.bytesize, key1, key2.bytesize, key2)
+  end
+
   def each
-    callback = lambda do |context, keybytes, key, valuebytes, value|
-      yield(key.get_bytes(0, keybytes), value.get_bytes(0, valuebytes))
+    callback = lambda do |context, kb, key, vb, v|
+      yield(key.get_bytes(0, kb), v.get_bytes(0, vb))
     end
     Pmemkv.kvengine_each(@kv, nil, callback)
   end
 
+  def each_above(key)
+    callback = lambda do |context, kb, k, vb, v|
+      yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
+    end
+    Pmemkv.kvengine_each_above(@kv, nil, key.bytesize, key, callback)
+  end
+
+  def each_below(key)
+    callback = lambda do |context, kb, k, vb, v|
+      yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
+    end
+    Pmemkv.kvengine_each_below(@kv, nil, key.bytesize, key, callback)
+  end
+
+  def each_between(key1, key2)
+    callback = lambda do |context, kb, k, vb, v|
+      yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
+    end
+    Pmemkv.kvengine_each_between(@kv, nil, key1.bytesize, key1, key2.bytesize, key2, callback)
+  end
+
   def each_string(encoding = 'utf-8')
-    callback = lambda do |context, keybytes, key, valuebytes, value|
-      k = key.get_bytes(0, keybytes).force_encoding(encoding)
-      v = value.get_bytes(0, valuebytes).force_encoding(encoding)
-      yield(k, v)
+    callback = lambda do |context, kb, k, vb, v|
+      kk = k.get_bytes(0, kb).force_encoding(encoding)
+      vv = v.get_bytes(0, vb).force_encoding(encoding)
+      yield(kk, vv)
     end
     Pmemkv.kvengine_each(@kv, nil, callback)
+  end
+
+  def each_string_above(key, encoding = 'utf-8')
+    callback = lambda do |context, kb, k, vb, v|
+      kk = k.get_bytes(0, kb).force_encoding(encoding)
+      vv = v.get_bytes(0, vb).force_encoding(encoding)
+      yield(kk, vv)
+    end
+    Pmemkv.kvengine_each_above(@kv, nil, key.bytesize, key, callback)
+  end
+
+  def each_string_below(key, encoding = 'utf-8')
+    callback = lambda do |context, kb, k, vb, v|
+      kk = k.get_bytes(0, kb).force_encoding(encoding)
+      vv = v.get_bytes(0, vb).force_encoding(encoding)
+      yield(kk, vv)
+    end
+    Pmemkv.kvengine_each_below(@kv, nil, key.bytesize, key, callback)
+  end
+
+  def each_string_between(key1, key2, encoding = 'utf-8')
+    callback = lambda do |context, kb, k, vb, v|
+      kk = k.get_bytes(0, kb).force_encoding(encoding)
+      vv = v.get_bytes(0, vb).force_encoding(encoding)
+      yield(kk, vv)
+    end
+    Pmemkv.kvengine_each_between(@kv, nil, key1.bytesize, key1, key2.bytesize, key2, callback)
   end
 
   def exists(key)
