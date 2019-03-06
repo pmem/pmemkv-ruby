@@ -32,7 +32,7 @@
 
 require 'pmemkv/all'
 
-ENGINE = 'vmap'
+ENGINE = 'vsmap'
 CONFIG = "{\"path\":\"/dev/shm\"}"
 
 describe KVEngine do
