@@ -25,7 +25,19 @@ Add gem to your Gemfile:
 gem 'pmemkv', :git => 'https://github.com/pmem/pmemkv-ruby.git'
 ```
 
-Download gems using Bundler: `bundle install`
+Download and install gems: 
+
+```
+bundle install
+```
+
+## Testing
+
+This library includes a set of automated tests that exercise all functionality.
+
+```
+bundle exec rspec
+```
 
 ## Example
 
