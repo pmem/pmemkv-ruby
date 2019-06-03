@@ -38,8 +38,8 @@ module Pmemkv
   callback :kv_all_callback, [:pointer, :int32, :pointer], :void
   callback :kv_each_callback, [:pointer, :int32, :pointer, :int32, :pointer], :void
   callback :kv_get_callback, [:pointer, :int32, :pointer], :void
-  callback :kv_start_failure_callback, [:pointer, :string, :string, :string], :void
-  attach_function :kvengine_start, [:pointer, :string, :string, :kv_start_failure_callback], :pointer
+  callback :kv_start_failure_callback, [:pointer, :string, :pointer, :string], :void
+  attach_function :kvengine_start, [:pointer, :string, :pointer, :kv_start_failure_callback], :pointer
   attach_function :kvengine_stop, [:pointer], :void
   attach_function :kvengine_all, [:pointer, :pointer, :kv_all_callback], :void
   attach_function :kvengine_all_above, [:pointer, :pointer, :int32, :pointer, :kv_all_callback], :void
@@ -57,16 +57,26 @@ module Pmemkv
   attach_function :kvengine_get, [:pointer, :pointer, :int32, :pointer, :kv_get_callback], :void
   attach_function :kvengine_put, [:pointer, :int32, :pointer, :int32, :pointer], :int8
   attach_function :kvengine_remove, [:pointer, :int32, :pointer], :int8
+  attach_function :pmemkv_config_new, [], :pointer
+  attach_function :pmemkv_config_delete, [:pointer], :void
+  attach_function :pmemkv_config_put, [:pointer, :string, :pointer, :int32], :int8
+  attach_function :pmemkv_config_get, [:pointer, :string, :pointer, :int32, :pointer], :int8
+  attach_function :pmemkv_config_from_json, [:pointer, :string], :int8
 end
 
 class KVEngine
 
   def initialize(engine, config)
     @stopped = false
-    callback = lambda do |context, engine, config, msg|
+    cfg = Pmemkv.pmemkv_config_new
+    raise RuntimeError.new("Cannot create a new pmemkv config") if cfg == nil
+    rv = Pmemkv.pmemkv_config_from_json(cfg, config)
+    raise ArgumentError.new("Config could not be parsed as JSON") if rv != 0
+    callback = lambda do |context, engine, cfg, msg|
       raise ArgumentError.new(msg)
     end
-    @kv = Pmemkv.kvengine_start(nil, engine, config, callback)
+    @kv = Pmemkv.kvengine_start(nil, engine, cfg, callback)
+    Pmemkv.pmemkv_config_delete(cfg)
   end
 
   def stop

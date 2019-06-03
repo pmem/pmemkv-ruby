@@ -199,7 +199,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, '{}')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'Config does not include valid path string'
+      expect(e.message).to eql 'Config does not contain a \'path\' string'
     end
     expect(kv).to be nil
   end
@@ -243,7 +243,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, '{"path":1234}')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'Config does not include valid path string'
+      expect(e.message).to eql 'Config path is not an existing directory'
     end
     expect(kv).to be nil
   end
