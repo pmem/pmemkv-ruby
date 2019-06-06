@@ -61,7 +61,7 @@ module Pmemkv
   attach_function :pmemkv_config_delete, [:pointer], :void
   attach_function :pmemkv_config_put, [:pointer, :string, :pointer, :int32], :int8
   attach_function :pmemkv_config_get, [:pointer, :string, :pointer, :int32, :pointer], :int8
-  attach_function :pmemkv_config_from_json, [:pointer, :string], :string
+  attach_function :pmemkv_config_from_json, [:pointer, :string], :int
 end
 
 class KVEngine
@@ -70,8 +70,8 @@ class KVEngine
     @stopped = false
     config = Pmemkv.pmemkv_config_new
     raise RuntimeError.new("Cannot create a new pmemkv config") if config == nil
-    err_msg = Pmemkv.pmemkv_config_from_json(config, json_string)
-    raise ArgumentError.new(err_msg) if err_msg != nil
+    rv = Pmemkv.pmemkv_config_from_json(config, json_string)
+    raise ArgumentError.new("Creating a pmemkv config from JSON string failed") if rv != 0
     callback = lambda do |context, engine, config, msg|
       raise ArgumentError.new(msg)
     end
