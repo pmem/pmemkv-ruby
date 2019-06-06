@@ -210,7 +210,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, '{')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'Input string is not a valid JSON'
+      expect(e.message).to eql 'Creating a pmemkv config from JSON string failed'
     end
     expect(kv).to be nil
   end
@@ -243,7 +243,7 @@ describe KVEngine do
       kv = KVEngine.new(ENGINE, '{"path":1234}')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'JSON does not contain a valid path string'
+      expect(e.message).to eql 'Creating a pmemkv config from JSON string failed'
     end
     expect(kv).to be nil
   end
