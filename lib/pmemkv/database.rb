@@ -64,7 +64,7 @@ module Pmemkv
   attach_function :pmemkv_config_from_json, [:pointer, :string], :int
 end
 
-class KVEngine
+class Database
 
   def initialize(engine, json_string)
     @stopped = false
