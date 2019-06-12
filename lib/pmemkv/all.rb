@@ -34,7 +34,7 @@ require 'pmemkv/kv_engine'
 
 module Pmemkv
 
-  class KVEngine < KVEngine
+  class DataBase < DataBase
   end
 
 end
