@@ -19,10 +19,17 @@ are logged as GitHub issues.*
 
 Start by installing [pmemkv](https://github.com/pmem/pmemkv/blob/master/INSTALLING.md) on your system.
 
-Add gem to your Gemfile:
+Install Bundler:
 
 ```
-gem 'pmemkv', :git => 'https://github.com/pmem/pmemkv-ruby.git'
+gem install bundler -v '< 2.0'
+```
+
+Clone the pmemkv-ruby tree:
+
+```
+git clone https://github.com/pmem/pmemkv-ruby.git
+cd pmemkv-ruby
 ```
 
 Download and install gems: 
@@ -36,7 +43,7 @@ bundle install
 This library includes a set of automated tests that exercise all functionality.
 
 ```
-bundle exec rspec
+LD_LIBRARY_PATH=path_to_your_libs bundle exec rspec
 ```
 
 ## Example
