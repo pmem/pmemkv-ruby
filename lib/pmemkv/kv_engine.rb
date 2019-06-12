@@ -35,28 +35,28 @@ require 'ffi'
 module Pmemkv
   extend FFI::Library
   ffi_lib ENV['PMEMKV_LIB'].nil? ? 'libpmemkv.so' : ENV['PMEMKV_LIB']
-  callback :kv_all_callback, [:pointer, :int32, :pointer], :void
-  callback :kv_each_callback, [:pointer, :int32, :pointer, :int32, :pointer], :void
-  callback :kv_get_callback, [:pointer, :int32, :pointer], :void
-  callback :kv_start_failure_callback, [:pointer, :string, :pointer, :string], :void
-  attach_function :kvengine_start, [:pointer, :string, :pointer, :kv_start_failure_callback], :pointer
-  attach_function :kvengine_stop, [:pointer], :void
-  attach_function :kvengine_all, [:pointer, :pointer, :kv_all_callback], :void
-  attach_function :kvengine_all_above, [:pointer, :pointer, :int32, :pointer, :kv_all_callback], :void
-  attach_function :kvengine_all_below, [:pointer, :pointer, :int32, :pointer, :kv_all_callback], :void
-  attach_function :kvengine_all_between, [:pointer, :pointer, :int32, :pointer, :int32, :pointer, :kv_all_callback], :void
-  attach_function :kvengine_count, [:pointer], :int64
-  attach_function :kvengine_count_above, [:pointer, :int32, :pointer], :int64
-  attach_function :kvengine_count_below, [:pointer, :int32, :pointer], :int64
-  attach_function :kvengine_count_between, [:pointer, :int32, :pointer, :int32, :pointer], :int64
-  attach_function :kvengine_each, [:pointer, :pointer, :kv_each_callback], :void
-  attach_function :kvengine_each_above, [:pointer, :pointer, :int32, :pointer, :kv_each_callback], :void
-  attach_function :kvengine_each_below, [:pointer, :pointer, :int32, :pointer, :kv_each_callback], :void
-  attach_function :kvengine_each_between, [:pointer, :pointer, :int32, :pointer, :int32, :pointer, :kv_each_callback], :void
-  attach_function :kvengine_exists, [:pointer, :int32, :pointer], :int8
-  attach_function :kvengine_get, [:pointer, :pointer, :int32, :pointer, :kv_get_callback], :void
-  attach_function :kvengine_put, [:pointer, :int32, :pointer, :int32, :pointer], :int8
-  attach_function :kvengine_remove, [:pointer, :int32, :pointer], :int8
+  callback :pmemkv_all_callback, [:pointer, :int32, :pointer], :void
+  callback :pmemkv_each_callback, [:pointer, :int32, :pointer, :int32, :pointer], :void
+  callback :pmemkv_get_callback, [:pointer, :int32, :pointer], :void
+  callback :pmemkv_start_failure_callback, [:pointer, :string, :pointer, :string], :void
+  attach_function :pmemkv_open, [:pointer, :string, :pointer, :pmemkv_start_failure_callback], :pointer
+  attach_function :pmemkv_close, [:pointer], :void
+  attach_function :pmemkv_all, [:pointer, :pmemkv_all_callback, :pointer], :void
+  attach_function :pmemkv_all_above, [:pointer, :pointer, :int32, :pmemkv_all_callback, :pointer], :void
+  attach_function :pmemkv_all_below, [:pointer, :pointer, :int32, :pmemkv_all_callback, :pointer], :void
+  attach_function :pmemkv_all_between, [:pointer, :pointer, :int32, :pointer, :int32, :pmemkv_all_callback, :pointer], :void
+  attach_function :pmemkv_count, [:pointer], :int64
+  attach_function :pmemkv_count_above, [:pointer, :pointer, :int32], :int64
+  attach_function :pmemkv_count_below, [:pointer, :pointer, :int32], :int64
+  attach_function :pmemkv_count_between, [:pointer, :pointer, :int32, :pointer, :int32], :int64
+  attach_function :pmemkv_each, [:pointer, :pmemkv_each_callback, :pointer], :void
+  attach_function :pmemkv_each_above, [:pointer, :pointer, :int32, :pmemkv_each_callback, :pointer], :void
+  attach_function :pmemkv_each_below, [:pointer, :pointer, :int32, :pmemkv_each_callback, :pointer], :void
+  attach_function :pmemkv_each_between, [:pointer, :pointer, :int32, :pointer, :int32, :pmemkv_each_callback, :pointer], :void
+  attach_function :pmemkv_exists, [:pointer, :pointer, :int32], :int8
+  attach_function :pmemkv_get, [:pointer, :pointer, :int32, :pmemkv_get_callback, :pointer], :void
+  attach_function :pmemkv_put, [:pointer, :pointer, :int32, :pointer, :int32], :int8
+  attach_function :pmemkv_remove, [:pointer, :pointer, :int32], :int8
   attach_function :pmemkv_config_new, [], :pointer
   attach_function :pmemkv_config_delete, [:pointer], :void
   attach_function :pmemkv_config_put, [:pointer, :string, :pointer, :int32], :int8
@@ -75,71 +75,71 @@ class KVEngine
     callback = lambda do |context, engine, config, msg|
       raise ArgumentError.new(msg)
     end
-    @kv = Pmemkv.kvengine_start(nil, engine, config, callback)
+    @db = Pmemkv.pmemkv_open(nil, engine, config, callback)
     Pmemkv.pmemkv_config_delete(config)
   end
 
   def stop
     unless @stopped
       @stopped = true
-      Pmemkv.kvengine_stop(@kv)
+      Pmemkv.pmemkv_close(@db)
     end
   end
 
   def all
-    callback = lambda do |context, kb, k|
+    callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb))
     end
-    Pmemkv.kvengine_all(@kv, nil, callback)
+    Pmemkv.pmemkv_all(@db, callback, nil)
   end
 
   def all_above(key)
-    callback = lambda do |context, kb, k|
+    callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb))
     end
-    Pmemkv.kvengine_all_above(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_all_above(@db, key, key.bytesize, callback, nil)
   end
 
   def all_below(key)
-    callback = lambda do |context, kb, k|
+    callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb))
     end
-    Pmemkv.kvengine_all_below(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_all_below(@db, key, key.bytesize, callback, nil)
   end
 
   def all_between(key1, key2)
-    callback = lambda do |context, kb, k|
+    callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb))
     end
-    Pmemkv.kvengine_all_between(@kv, nil, key1.bytesize, key1, key2.bytesize, key2, callback)
+    Pmemkv.pmemkv_all_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
   end
 
   def all_strings(encoding = 'utf-8')
-    callback = lambda do |context, kb, k|
+    callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
-    Pmemkv.kvengine_all(@kv, nil, callback)
+    Pmemkv.pmemkv_all(@db, callback, nil)
   end
 
   def all_strings_above(key, encoding = 'utf-8')
-    callback = lambda do |context, kb, k|
+    callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
-    Pmemkv.kvengine_all_above(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_all_above(@db, key, key.bytesize, callback, nil)
   end
 
   def all_strings_below(key, encoding = 'utf-8')
-    callback = lambda do |context, kb, k|
+    callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
-    Pmemkv.kvengine_all_below(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_all_below(@db, key, key.bytesize, callback, nil)
   end
 
   def all_strings_between(key1, key2, encoding = 'utf-8')
-    callback = lambda do |context, kb, k|
+    callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
-    Pmemkv.kvengine_all_between(@kv, nil, key1.bytesize, key1, key2.bytesize, key2, callback)
+    Pmemkv.pmemkv_all_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
   end
 
   def stopped?
@@ -147,114 +147,114 @@ class KVEngine
   end
 
   def count
-    Pmemkv.kvengine_count(@kv)
+    Pmemkv.pmemkv_count(@db)
   end
 
   def count_above(key)
-    Pmemkv.kvengine_count_above(@kv, key.bytesize, key)
+    Pmemkv.pmemkv_count_above(@db, key, key.bytesize)
   end
 
   def count_below(key)
-    Pmemkv.kvengine_count_below(@kv, key.bytesize, key)
+    Pmemkv.pmemkv_count_below(@db, key, key.bytesize)
   end
 
   def count_between(key1, key2)
-    Pmemkv.kvengine_count_between(@kv, key1.bytesize, key1, key2.bytesize, key2)
+    Pmemkv.pmemkv_count_between(@db, key1, key1.bytesize, key2, key2.bytesize)
   end
 
   def each
-    callback = lambda do |context, kb, key, vb, v|
-      yield(key.get_bytes(0, kb), v.get_bytes(0, vb))
+    callback = lambda do |k, kb, v, vb, context|
+      yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
-    Pmemkv.kvengine_each(@kv, nil, callback)
+    Pmemkv.pmemkv_each(@db, callback, nil)
   end
 
   def each_above(key)
-    callback = lambda do |context, kb, k, vb, v|
+    callback = lambda do |k, kb, v, vb, context|
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
-    Pmemkv.kvengine_each_above(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_each_above(@db, key, key.bytesize, callback, nil)
   end
 
   def each_below(key)
-    callback = lambda do |context, kb, k, vb, v|
+    callback = lambda do |k, kb, v, vb, context|
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
-    Pmemkv.kvengine_each_below(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_each_below(@db, key, key.bytesize, callback, nil)
   end
 
   def each_between(key1, key2)
-    callback = lambda do |context, kb, k, vb, v|
+    callback = lambda do |k, kb, v, vb, context|
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
-    Pmemkv.kvengine_each_between(@kv, nil, key1.bytesize, key1, key2.bytesize, key2, callback)
+    Pmemkv.pmemkv_each_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
   end
 
   def each_string(encoding = 'utf-8')
-    callback = lambda do |context, kb, k, vb, v|
+    callback = lambda do |k, kb, v, vb, context|
       kk = k.get_bytes(0, kb).force_encoding(encoding)
       vv = v.get_bytes(0, vb).force_encoding(encoding)
       yield(kk, vv)
     end
-    Pmemkv.kvengine_each(@kv, nil, callback)
+    Pmemkv.pmemkv_each(@db, callback, nil)
   end
 
   def each_string_above(key, encoding = 'utf-8')
-    callback = lambda do |context, kb, k, vb, v|
+    callback = lambda do |k, kb, v, vb, context|
       kk = k.get_bytes(0, kb).force_encoding(encoding)
       vv = v.get_bytes(0, vb).force_encoding(encoding)
       yield(kk, vv)
     end
-    Pmemkv.kvengine_each_above(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_each_above(@db, key, key.bytesize, callback, nil)
   end
 
   def each_string_below(key, encoding = 'utf-8')
-    callback = lambda do |context, kb, k, vb, v|
+    callback = lambda do |k, kb, v, vb, context|
       kk = k.get_bytes(0, kb).force_encoding(encoding)
       vv = v.get_bytes(0, vb).force_encoding(encoding)
       yield(kk, vv)
     end
-    Pmemkv.kvengine_each_below(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_each_below(@db, key, key.bytesize, callback, nil)
   end
 
   def each_string_between(key1, key2, encoding = 'utf-8')
-    callback = lambda do |context, kb, k, vb, v|
+    callback = lambda do |k, kb, v, vb, context|
       kk = k.get_bytes(0, kb).force_encoding(encoding)
       vv = v.get_bytes(0, vb).force_encoding(encoding)
       yield(kk, vv)
     end
-    Pmemkv.kvengine_each_between(@kv, nil, key1.bytesize, key1, key2.bytesize, key2, callback)
+    Pmemkv.pmemkv_each_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
   end
 
   def exists(key)
-    Pmemkv.kvengine_exists(@kv, key.bytesize, key) == 1
+    Pmemkv.pmemkv_exists(@db, key, key.bytesize) == 1
   end
 
   def get(key)
     result = nil
-    callback = lambda do |context, valuebytes, value|
+    callback = lambda do |value, valuebytes, context|
       result = value.get_bytes(0, valuebytes)
     end
-    Pmemkv.kvengine_get(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_get(@db, key, key.bytesize, callback, nil)
     result
   end
 
   def get_string(key, encoding = 'utf-8')
     result = nil
-    callback = lambda do |context, valuebytes, value|
+    callback = lambda do |value, valuebytes, context|
       result = value.get_bytes(0, valuebytes).force_encoding(encoding)
     end
-    Pmemkv.kvengine_get(@kv, nil, key.bytesize, key, callback)
+    Pmemkv.pmemkv_get(@db, key, key.bytesize, callback, nil)
     result
   end
 
   def put(key, value)
-    result = Pmemkv.kvengine_put(@kv, key.bytesize, key, value.bytesize, value)
+    result = Pmemkv.pmemkv_put(@db, key, key.bytesize, value, value.bytesize)
     raise RuntimeError.new("Unable to put key") if result < 0
   end
 
   def remove(key)
-    result = Pmemkv.kvengine_remove(@kv, key.bytesize, key)
+    result = Pmemkv.pmemkv_remove(@db, key, key.bytesize)
     raise RuntimeError.new("Unable to remove key") if result < 0
     (result == 1)
   end
