@@ -53,24 +53,24 @@ def assert(condition)
 end
 
 puts 'Starting engine'
-kv = KVEngine.new('vsmap', '{"path":"/dev/shm/"}')
+db = DataBase.new('vsmap', '{"path":"/dev/shm/"}')
 
 puts 'Putting new key'
-kv.put('key1', 'value1')
-assert kv.count == 1
+db.put('key1', 'value1')
+assert db.count == 1
 
 puts 'Reading key back'
-assert kv.get('key1').eql?('value1')
+assert db.get('key1').eql?('value1')
 
 puts 'Iterating existing keys'
-kv.put('key2', 'value2')
-kv.put('key3', 'value3')
-kv.all_strings {|k| puts "  visited: #{k}"}
+db.put('key2', 'value2')
+db.put('key3', 'value3')
+db.all_strings {|k| puts "  visited: #{k}"}
 
 puts 'Removing existing key'
-kv.remove('key1')
-assert !kv.exists('key1')
+db.remove('key1')
+assert !db.exists('key1')
 
 puts 'Stopping engine'
-kv.stop
+db.stop
 ```
