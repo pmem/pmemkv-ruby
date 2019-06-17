@@ -33,7 +33,7 @@
 require 'pmemkv/all'
 
 ENGINE = 'vsmap'
-CONFIG = "{\"path\":\"/dev/shm\"}"
+CONFIG = "{\"path\":\"/dev/shm\",\"size\":1073741824}"
 
 describe Database do
 
@@ -199,7 +199,11 @@ describe Database do
       db = Database.new(ENGINE, '{}')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'JSON does not contain a valid path string'
+      # XXX The expected error message should be changed to
+      # 'JSON does not contain a valid path string'
+      # when pmemkv_errmsg() is implemented.
+      # There is no way to retrieve this error message now.
+      expect(e.message).to eql 'pmemkv_open failed'
     end
     expect(db).to be nil
   end
@@ -221,7 +225,11 @@ describe Database do
       db = Database.new('nope.nope', CONFIG)
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'Unknown engine name'
+      # XXX The expected error message should be changed to
+      # 'Unknown engine name'
+      # when pmemkv_errmsg() is implemented.
+      # There is no way to retrieve this error message now.
+      expect(e.message).to eql 'pmemkv_open failed'
     end
     expect(db).to be nil
   end
@@ -232,7 +240,11 @@ describe Database do
       db = Database.new(ENGINE, "{\"path\":\"/tmp/123/234/345/456/567/678/nope.nope\"}")
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'Config path is not an existing directory'
+      # XXX The expected error message should be changed to
+      # 'Config path is not an existing directory'
+      # when pmemkv_errmsg() is implemented.
+      # There is no way to retrieve this error message now.
+      expect(e.message).to eql 'pmemkv_open failed'
     end
     expect(db).to be nil
   end

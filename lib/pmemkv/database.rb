@@ -32,6 +32,24 @@
 
 require 'ffi'
 
+PMEMKV_STATUS_OK = 0
+PMEMKV_STATUS_FAILED = 1
+PMEMKV_STATUS_NOT_FOUND = 2
+PMEMKV_STATUS_NOT_SUPPORTED = 3
+PMEMKV_STATUS_INVALID_ARGUMENT = 4
+PMEMKV_STATUS_CONFIG_PARSING_ERROR = 5
+
+# two classes used to pass a result by reference: https://github.com/ffi/ffi/wiki/Pointers
+# pointer to pointer
+class PtrPtr < FFI::Struct
+    layout  :value, :pointer
+end
+
+# pointer to int64
+class Int64Ptr < FFI::Struct
+    layout  :value, :int64
+end
+
 module Pmemkv
   extend FFI::Library
   ffi_lib ENV['PMEMKV_LIB'].nil? ? 'libpmemkv.so' : ENV['PMEMKV_LIB']
@@ -39,28 +57,28 @@ module Pmemkv
   callback :pmemkv_each_callback, [:pointer, :uint64, :pointer, :uint64, :pointer], :void
   callback :pmemkv_get_callback, [:pointer, :uint64, :pointer], :void
   callback :pmemkv_start_failure_callback, [:pointer, :string, :pointer, :string], :void
-  attach_function :pmemkv_open, [:pointer, :string, :pointer, :pmemkv_start_failure_callback], :pointer
+  attach_function :pmemkv_open, [:pointer, :string, :pointer, PtrPtr], :int
   attach_function :pmemkv_close, [:pointer], :void
-  attach_function :pmemkv_all, [:pointer, :pmemkv_all_callback, :pointer], :void
-  attach_function :pmemkv_all_above, [:pointer, :pointer, :uint64, :pmemkv_all_callback, :pointer], :void
-  attach_function :pmemkv_all_below, [:pointer, :pointer, :uint64, :pmemkv_all_callback, :pointer], :void
-  attach_function :pmemkv_all_between, [:pointer, :pointer, :uint64, :pointer, :uint64, :pmemkv_all_callback, :pointer], :void
-  attach_function :pmemkv_count, [:pointer], :int64
-  attach_function :pmemkv_count_above, [:pointer, :pointer, :uint64], :int64
-  attach_function :pmemkv_count_below, [:pointer, :pointer, :uint64], :int64
-  attach_function :pmemkv_count_between, [:pointer, :pointer, :uint64, :pointer, :uint64], :int64
-  attach_function :pmemkv_each, [:pointer, :pmemkv_each_callback, :pointer], :void
-  attach_function :pmemkv_each_above, [:pointer, :pointer, :uint64, :pmemkv_each_callback, :pointer], :void
-  attach_function :pmemkv_each_below, [:pointer, :pointer, :uint64, :pmemkv_each_callback, :pointer], :void
-  attach_function :pmemkv_each_between, [:pointer, :pointer, :uint64, :pointer, :uint64, :pmemkv_each_callback, :pointer], :void
-  attach_function :pmemkv_exists, [:pointer, :pointer, :uint64], :int8
-  attach_function :pmemkv_get, [:pointer, :pointer, :uint64, :pmemkv_get_callback, :pointer], :void
-  attach_function :pmemkv_put, [:pointer, :pointer, :uint64, :pointer, :uint64], :int8
-  attach_function :pmemkv_remove, [:pointer, :pointer, :uint64], :int8
+  attach_function :pmemkv_all, [:pointer, :pmemkv_all_callback, :pointer], :int
+  attach_function :pmemkv_all_above, [:pointer, :pointer, :uint64, :pmemkv_all_callback, :pointer], :int
+  attach_function :pmemkv_all_below, [:pointer, :pointer, :uint64, :pmemkv_all_callback, :pointer], :int
+  attach_function :pmemkv_all_between, [:pointer, :pointer, :uint64, :pointer, :uint64, :pmemkv_all_callback, :pointer], :int
+  attach_function :pmemkv_count, [:pointer, Int64Ptr], :int
+  attach_function :pmemkv_count_above, [:pointer, :pointer, :uint64, Int64Ptr], :int
+  attach_function :pmemkv_count_below, [:pointer, :pointer, :uint64, Int64Ptr], :int
+  attach_function :pmemkv_count_between, [:pointer, :pointer, :uint64, :pointer, :uint64, Int64Ptr], :int
+  attach_function :pmemkv_each, [:pointer, :pmemkv_each_callback, :pointer], :int
+  attach_function :pmemkv_each_above, [:pointer, :pointer, :uint64, :pmemkv_each_callback, :pointer], :int
+  attach_function :pmemkv_each_below, [:pointer, :pointer, :uint64, :pmemkv_each_callback, :pointer], :int
+  attach_function :pmemkv_each_between, [:pointer, :pointer, :uint64, :pointer, :uint64, :pmemkv_each_callback, :pointer], :int
+  attach_function :pmemkv_exists, [:pointer, :pointer, :uint64], :int
+  attach_function :pmemkv_get, [:pointer, :pointer, :uint64, :pmemkv_get_callback, :pointer], :int
+  attach_function :pmemkv_put, [:pointer, :pointer, :uint64, :pointer, :uint64], :int
+  attach_function :pmemkv_remove, [:pointer, :pointer, :uint64], :int
   attach_function :pmemkv_config_new, [], :pointer
   attach_function :pmemkv_config_delete, [:pointer], :void
-  attach_function :pmemkv_config_put, [:pointer, :string, :pointer, :uint64], :int8
-  attach_function :pmemkv_config_get, [:pointer, :string, :pointer, :uint64, :pointer], :int8
+  attach_function :pmemkv_config_put, [:pointer, :string, :pointer, :uint64], :int
+  attach_function :pmemkv_config_get, [:pointer, :string, :pointer, :uint64, :pointer], :int
   attach_function :pmemkv_config_from_json, [:pointer, :string], :int
 end
 
@@ -69,14 +87,20 @@ class Database
   def initialize(engine, json_string)
     @stopped = false
     config = Pmemkv.pmemkv_config_new
-    raise RuntimeError.new("Cannot create a new pmemkv config") if config == nil
+    raise RuntimeError.new("Allocating a new pmemkv config failed") if config == nil
+
     rv = Pmemkv.pmemkv_config_from_json(config, json_string)
-    raise ArgumentError.new("Creating a pmemkv config from JSON string failed") if rv != 0
-    callback = lambda do |context, engine, config, msg|
-      raise ArgumentError.new(msg)
+    if rv != 0
+      Pmemkv.pmemkv_config_delete(config)
+      raise ArgumentError.new("Creating a pmemkv config from JSON string failed")
     end
-    @db = Pmemkv.pmemkv_open(nil, engine, config, callback)
+
+    # passing a result by reference: https://github.com/ffi/ffi/wiki/Pointers
+    dbl = PtrPtr.new
+    rv = Pmemkv.pmemkv_open(nil, engine, config, dbl)
     Pmemkv.pmemkv_config_delete(config)
+    raise ArgumentError.new("pmemkv_open failed") if rv != 0
+    @db = dbl[:value]
   end
 
   def stop
@@ -90,56 +114,72 @@ class Database
     callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb))
     end
-    Pmemkv.pmemkv_all(@db, callback, nil)
+    result = Pmemkv.pmemkv_all(@db, callback, nil)
+    raise RuntimeError.new("pmemkv_all() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def all_above(key)
     callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb))
     end
-    Pmemkv.pmemkv_all_above(@db, key, key.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_all_above(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_all_above() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def all_below(key)
     callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb))
     end
-    Pmemkv.pmemkv_all_below(@db, key, key.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_all_below(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_all_below() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def all_between(key1, key2)
     callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb))
     end
-    Pmemkv.pmemkv_all_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_all_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_all_between() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def all_strings(encoding = 'utf-8')
     callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
-    Pmemkv.pmemkv_all(@db, callback, nil)
+    result = Pmemkv.pmemkv_all(@db, callback, nil)
+    raise RuntimeError.new("pmemkv_all() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def all_strings_above(key, encoding = 'utf-8')
     callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
-    Pmemkv.pmemkv_all_above(@db, key, key.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_all_above(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_all_above() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def all_strings_below(key, encoding = 'utf-8')
     callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
-    Pmemkv.pmemkv_all_below(@db, key, key.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_all_below(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_all_below() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def all_strings_between(key1, key2, encoding = 'utf-8')
     callback = lambda do |k, kb, context|
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
-    Pmemkv.pmemkv_all_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_all_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_all_between() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def stopped?
@@ -147,47 +187,67 @@ class Database
   end
 
   def count
-    Pmemkv.pmemkv_count(@db)
+    cnt = Int64Ptr.new
+    rv = Pmemkv.pmemkv_count(@db, cnt)
+    raise RuntimeError.new("pmemkv_count() failed") if rv != PMEMKV_STATUS_OK
+    cnt[:value]
   end
 
   def count_above(key)
-    Pmemkv.pmemkv_count_above(@db, key, key.bytesize)
+    cnt = Int64Ptr.new
+    rv = Pmemkv.pmemkv_count_above(@db, key, key.bytesize, cnt)
+    raise RuntimeError.new("pmemkv_count_above() failed") if rv != PMEMKV_STATUS_OK
+    cnt[:value]
   end
 
   def count_below(key)
-    Pmemkv.pmemkv_count_below(@db, key, key.bytesize)
+    cnt = Int64Ptr.new
+    rv = Pmemkv.pmemkv_count_below(@db, key, key.bytesize, cnt)
+    raise RuntimeError.new("pmemkv_count_below() failed") if rv != PMEMKV_STATUS_OK
+    cnt[:value]
   end
 
   def count_between(key1, key2)
-    Pmemkv.pmemkv_count_between(@db, key1, key1.bytesize, key2, key2.bytesize)
+    cnt = Int64Ptr.new
+    rv = Pmemkv.pmemkv_count_between(@db, key1, key1.bytesize, key2, key2.bytesize, cnt)
+    raise RuntimeError.new("pmemkv_count_between() failed") if rv != PMEMKV_STATUS_OK
+    cnt[:value]
   end
 
   def each
     callback = lambda do |k, kb, v, vb, context|
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
-    Pmemkv.pmemkv_each(@db, callback, nil)
+    result = Pmemkv.pmemkv_each(@db, callback, nil)
+    raise RuntimeError.new("pmemkv_each() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def each_above(key)
     callback = lambda do |k, kb, v, vb, context|
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
-    Pmemkv.pmemkv_each_above(@db, key, key.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_each_above(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_each_above() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def each_below(key)
     callback = lambda do |k, kb, v, vb, context|
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
-    Pmemkv.pmemkv_each_below(@db, key, key.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_each_below(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_each_below() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def each_between(key1, key2)
     callback = lambda do |k, kb, v, vb, context|
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
-    Pmemkv.pmemkv_each_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_each_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_each_between() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def each_string(encoding = 'utf-8')
@@ -196,7 +256,9 @@ class Database
       vv = v.get_bytes(0, vb).force_encoding(encoding)
       yield(kk, vv)
     end
-    Pmemkv.pmemkv_each(@db, callback, nil)
+    result = Pmemkv.pmemkv_each(@db, callback, nil)
+    raise RuntimeError.new("pmemkv_each() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def each_string_above(key, encoding = 'utf-8')
@@ -205,7 +267,9 @@ class Database
       vv = v.get_bytes(0, vb).force_encoding(encoding)
       yield(kk, vv)
     end
-    Pmemkv.pmemkv_each_above(@db, key, key.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_each_above(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_each_above() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def each_string_below(key, encoding = 'utf-8')
@@ -214,7 +278,9 @@ class Database
       vv = v.get_bytes(0, vb).force_encoding(encoding)
       yield(kk, vv)
     end
-    Pmemkv.pmemkv_each_below(@db, key, key.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_each_below(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_each_below() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def each_string_between(key1, key2, encoding = 'utf-8')
@@ -223,11 +289,15 @@ class Database
       vv = v.get_bytes(0, vb).force_encoding(encoding)
       yield(kk, vv)
     end
-    Pmemkv.pmemkv_each_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
+    result = Pmemkv.pmemkv_each_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_each_between() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def exists(key)
-    Pmemkv.pmemkv_exists(@db, key, key.bytesize) == 1
+    result = Pmemkv.pmemkv_exists(@db, key, key.bytesize)
+    raise RuntimeError.new("pmemkv_exists() failed") if result == PMEMKV_STATUS_FAILED
+    (result == PMEMKV_STATUS_OK)
   end
 
   def get(key)
@@ -235,7 +305,8 @@ class Database
     callback = lambda do |value, valuebytes, context|
       result = value.get_bytes(0, valuebytes)
     end
-    Pmemkv.pmemkv_get(@db, key, key.bytesize, callback, nil)
+    rv = Pmemkv.pmemkv_get(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_get() failed") if rv == PMEMKV_STATUS_FAILED
     result
   end
 
@@ -244,19 +315,21 @@ class Database
     callback = lambda do |value, valuebytes, context|
       result = value.get_bytes(0, valuebytes).force_encoding(encoding)
     end
-    Pmemkv.pmemkv_get(@db, key, key.bytesize, callback, nil)
+    rv = Pmemkv.pmemkv_get(@db, key, key.bytesize, callback, nil)
+    raise RuntimeError.new("pmemkv_get() failed") if rv == PMEMKV_STATUS_FAILED
     result
   end
 
   def put(key, value)
     result = Pmemkv.pmemkv_put(@db, key, key.bytesize, value, value.bytesize)
-    raise RuntimeError.new("Unable to put key") if result < 0
+    raise RuntimeError.new("pmemkv_put() failed") if result == PMEMKV_STATUS_FAILED
+    result
   end
 
   def remove(key)
-    result = Pmemkv.pmemkv_remove(@db, key, key.bytesize)
-    raise RuntimeError.new("Unable to remove key") if result < 0
-    (result == 1)
+    rv = Pmemkv.pmemkv_remove(@db, key, key.bytesize)
+    raise RuntimeError.new("pmemkv_remove() failed") if rv == PMEMKV_STATUS_FAILED
+    (rv == PMEMKV_STATUS_OK)
   end
 
 end
