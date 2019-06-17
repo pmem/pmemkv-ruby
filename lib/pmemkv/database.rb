@@ -32,6 +32,17 @@
 
 require 'ffi'
 
+# two classes used to pass a result by reference: https://github.com/ffi/ffi/wiki/Pointers
+# pointer to pointer
+class PtrPtr < FFI::Struct
+    layout  :value, :pointer
+end
+
+# pointer to int64
+class Int64Ptr < FFI::Struct
+    layout  :value, :int64
+end
+
 module Pmemkv
   extend FFI::Library
   ffi_lib ENV['PMEMKV_LIB'].nil? ? 'libpmemkv.so' : ENV['PMEMKV_LIB']
@@ -39,28 +50,28 @@ module Pmemkv
   callback :pmemkv_each_callback, [:pointer, :uint64, :pointer, :uint64, :pointer], :void
   callback :pmemkv_get_callback, [:pointer, :uint64, :pointer], :void
   callback :pmemkv_start_failure_callback, [:pointer, :string, :pointer, :string], :void
-  attach_function :pmemkv_open, [:pointer, :string, :pointer, :pmemkv_start_failure_callback], :pointer
+  attach_function :pmemkv_open, [:pointer, :string, :pointer, PtrPtr], :int
   attach_function :pmemkv_close, [:pointer], :void
-  attach_function :pmemkv_all, [:pointer, :pmemkv_all_callback, :pointer], :void
-  attach_function :pmemkv_all_above, [:pointer, :pointer, :uint64, :pmemkv_all_callback, :pointer], :void
-  attach_function :pmemkv_all_below, [:pointer, :pointer, :uint64, :pmemkv_all_callback, :pointer], :void
-  attach_function :pmemkv_all_between, [:pointer, :pointer, :uint64, :pointer, :uint64, :pmemkv_all_callback, :pointer], :void
-  attach_function :pmemkv_count, [:pointer], :int64
-  attach_function :pmemkv_count_above, [:pointer, :pointer, :uint64], :int64
-  attach_function :pmemkv_count_below, [:pointer, :pointer, :uint64], :int64
-  attach_function :pmemkv_count_between, [:pointer, :pointer, :uint64, :pointer, :uint64], :int64
-  attach_function :pmemkv_each, [:pointer, :pmemkv_each_callback, :pointer], :void
-  attach_function :pmemkv_each_above, [:pointer, :pointer, :uint64, :pmemkv_each_callback, :pointer], :void
-  attach_function :pmemkv_each_below, [:pointer, :pointer, :uint64, :pmemkv_each_callback, :pointer], :void
-  attach_function :pmemkv_each_between, [:pointer, :pointer, :uint64, :pointer, :uint64, :pmemkv_each_callback, :pointer], :void
-  attach_function :pmemkv_exists, [:pointer, :pointer, :uint64], :int8
-  attach_function :pmemkv_get, [:pointer, :pointer, :uint64, :pmemkv_get_callback, :pointer], :void
-  attach_function :pmemkv_put, [:pointer, :pointer, :uint64, :pointer, :uint64], :int8
-  attach_function :pmemkv_remove, [:pointer, :pointer, :uint64], :int8
+  attach_function :pmemkv_all, [:pointer, :pmemkv_all_callback, :pointer], :int
+  attach_function :pmemkv_all_above, [:pointer, :pointer, :uint64, :pmemkv_all_callback, :pointer], :int
+  attach_function :pmemkv_all_below, [:pointer, :pointer, :uint64, :pmemkv_all_callback, :pointer], :int
+  attach_function :pmemkv_all_between, [:pointer, :pointer, :uint64, :pointer, :uint64, :pmemkv_all_callback, :pointer], :int
+  attach_function :pmemkv_count, [:pointer, Int64Ptr], :int
+  attach_function :pmemkv_count_above, [:pointer, :pointer, :uint64, Int64Ptr], :int
+  attach_function :pmemkv_count_below, [:pointer, :pointer, :uint64, Int64Ptr], :int
+  attach_function :pmemkv_count_between, [:pointer, :pointer, :uint64, :pointer, :uint64, Int64Ptr], :int
+  attach_function :pmemkv_each, [:pointer, :pmemkv_each_callback, :pointer], :int
+  attach_function :pmemkv_each_above, [:pointer, :pointer, :uint64, :pmemkv_each_callback, :pointer], :int
+  attach_function :pmemkv_each_below, [:pointer, :pointer, :uint64, :pmemkv_each_callback, :pointer], :int
+  attach_function :pmemkv_each_between, [:pointer, :pointer, :uint64, :pointer, :uint64, :pmemkv_each_callback, :pointer], :int
+  attach_function :pmemkv_exists, [:pointer, :pointer, :uint64], :int
+  attach_function :pmemkv_get, [:pointer, :pointer, :uint64, :pmemkv_get_callback, :pointer], :int
+  attach_function :pmemkv_put, [:pointer, :pointer, :uint64, :pointer, :uint64], :int
+  attach_function :pmemkv_remove, [:pointer, :pointer, :uint64], :int
   attach_function :pmemkv_config_new, [], :pointer
   attach_function :pmemkv_config_delete, [:pointer], :void
-  attach_function :pmemkv_config_put, [:pointer, :string, :pointer, :uint64], :int8
-  attach_function :pmemkv_config_get, [:pointer, :string, :pointer, :uint64, :pointer], :int8
+  attach_function :pmemkv_config_put, [:pointer, :string, :pointer, :uint64], :int
+  attach_function :pmemkv_config_get, [:pointer, :string, :pointer, :uint64, :pointer], :int
   attach_function :pmemkv_config_from_json, [:pointer, :string], :int
 end
 
@@ -69,14 +80,19 @@ class Database
   def initialize(engine, json_string)
     @stopped = false
     config = Pmemkv.pmemkv_config_new
-    raise RuntimeError.new("Cannot create a new pmemkv config") if config == nil
+    raise RuntimeError.new("Allocating a new pmemkv config failed") if config == nil
     rv = Pmemkv.pmemkv_config_from_json(config, json_string)
     raise ArgumentError.new("Creating a pmemkv config from JSON string failed") if rv != 0
     callback = lambda do |context, engine, config, msg|
       raise ArgumentError.new(msg)
     end
-    @db = Pmemkv.pmemkv_open(nil, engine, config, callback)
+
+    # passing a result by reference: https://github.com/ffi/ffi/wiki/Pointers
+    dbl = PtrPtr.new
+    rv = Pmemkv.pmemkv_open(nil, engine, config, dbl)
+    raise ArgumentError.new("pmemkv_open failed") if rv != 0
     Pmemkv.pmemkv_config_delete(config)
+    @db = dbl[:value]
   end
 
   def stop
@@ -147,19 +163,27 @@ class Database
   end
 
   def count
-    Pmemkv.pmemkv_count(@db)
+    cnt = Int64Ptr.new
+    Pmemkv.pmemkv_count(@db, cnt)
+    cnt[:value]
   end
 
   def count_above(key)
-    Pmemkv.pmemkv_count_above(@db, key, key.bytesize)
+    cnt = Int64Ptr.new
+    Pmemkv.pmemkv_count_above(@db, key, key.bytesize, cnt)
+    cnt[:value]
   end
 
   def count_below(key)
-    Pmemkv.pmemkv_count_below(@db, key, key.bytesize)
+    cnt = Int64Ptr.new
+    Pmemkv.pmemkv_count_below(@db, key, key.bytesize, cnt)
+    cnt[:value]
   end
 
   def count_between(key1, key2)
-    Pmemkv.pmemkv_count_between(@db, key1, key1.bytesize, key2, key2.bytesize)
+    cnt = Int64Ptr.new
+    Pmemkv.pmemkv_count_between(@db, key1, key1.bytesize, key2, key2.bytesize, cnt)
+    cnt[:value]
   end
 
   def each
@@ -227,7 +251,7 @@ class Database
   end
 
   def exists(key)
-    Pmemkv.pmemkv_exists(@db, key, key.bytesize) == 1
+    Pmemkv.pmemkv_exists(@db, key, key.bytesize) == 0
   end
 
   def get(key)
@@ -255,8 +279,7 @@ class Database
 
   def remove(key)
     result = Pmemkv.pmemkv_remove(@db, key, key.bytesize)
-    raise RuntimeError.new("Unable to remove key") if result < 0
-    (result == 1)
+    (result == 0)
   end
 
 end
