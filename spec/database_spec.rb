@@ -43,11 +43,11 @@ describe Database do
 
   it 'uses blackhole engine' do
     db = Database.new('blackhole', CONFIG)
-    expect(db.count).to eql 0
+    expect(db.count_all).to eql 0
     expect(db.exists('key1')).to be false
     expect(db.get('key1')).to be nil
     db.put('key1', 'value123')
-    expect(db.count).to eql 0
+    expect(db.count_all).to eql 0
     expect(db.exists('key1')).to be false
     expect(db.get('key1')).to be nil
     expect(db.remove('key1')).to be true
@@ -260,93 +260,93 @@ describe Database do
     expect(db).to be nil
   end
 
-  it 'uses all test' do
-    db = Database.new(ENGINE, CONFIG)
-    db.put('1', 'one')
-    db.put('2', 'two')
+  # it 'uses all test' do
+  #   db = Database.new(ENGINE, CONFIG)
+  #   db.put('1', 'one')
+  #   db.put('2', 'two')
 
-    x = ''
-    db.all {|k| x += "<#{k}>,"}
-    expect(x).to eql '<1>,<2>,'
+  #   x = ''
+  #   db.all {|k| x += "<#{k}>,"}
+  #   expect(x).to eql '<1>,<2>,'
 
-    db.put('记!', 'RR')
-    x = ''
-    db.all_strings {|k| x += "<#{k}>,"}
-    expect(x).to eql '<1>,<2>,<记!>,'
+  #   db.put('记!', 'RR')
+  #   x = ''
+  #   db.all_strings {|k| x += "<#{k}>,"}
+  #   expect(x).to eql '<1>,<2>,<记!>,'
 
-    db.stop
-  end
+  #   db.stop
+  # end
 
-  it 'uses all above test' do
-    db = Database.new(ENGINE, CONFIG)
-    db.put('A', '1')
-    db.put('AB', '2')
-    db.put('AC', '3')
-    db.put('B', '4')
-    db.put('BB', '5')
-    db.put('BC', '6')
+  # it 'uses all above test' do
+  #   db = Database.new(ENGINE, CONFIG)
+  #   db.put('A', '1')
+  #   db.put('AB', '2')
+  #   db.put('AC', '3')
+  #   db.put('B', '4')
+  #   db.put('BB', '5')
+  #   db.put('BC', '6')
 
-    x = ''
-    db.all_above('B') {|k| x += "#{k},"}
-    expect(x).to eql 'BB,BC,'
+  #   x = ''
+  #   db.all_above('B') {|k| x += "#{k},"}
+  #   expect(x).to eql 'BB,BC,'
 
-    db.put('记!', 'RR')
-    x = ''
-    db.all_strings_above('') {|k| x += "#{k},"}
-    expect(x).to eql 'A,AB,AC,B,BB,BC,记!,'
+  #   db.put('记!', 'RR')
+  #   x = ''
+  #   db.all_strings_above('') {|k| x += "#{k},"}
+  #   expect(x).to eql 'A,AB,AC,B,BB,BC,记!,'
 
-    db.stop
-  end
+  #   db.stop
+  # end
 
-  it 'uses all below test' do
-    db = Database.new(ENGINE, CONFIG)
-    db.put('A', '1')
-    db.put('AB', '2')
-    db.put('AC', '3')
-    db.put('B', '4')
-    db.put('BB', '5')
-    db.put('BC', '6')
+  # it 'uses all below test' do
+  #   db = Database.new(ENGINE, CONFIG)
+  #   db.put('A', '1')
+  #   db.put('AB', '2')
+  #   db.put('AC', '3')
+  #   db.put('B', '4')
+  #   db.put('BB', '5')
+  #   db.put('BC', '6')
 
-    x = ''
-    db.all_below('B') {|k| x += "#{k},"}
-    expect(x).to eql 'A,AB,AC,'
+  #   x = ''
+  #   db.all_below('B') {|k| x += "#{k},"}
+  #   expect(x).to eql 'A,AB,AC,'
 
-    db.put('记!', 'RR')
-    x = ''
-    db.all_strings_below("\uFFFF") {|k| x += "#{k},"}
-    expect(x).to eql 'A,AB,AC,B,BB,BC,记!,'
+  #   db.put('记!', 'RR')
+  #   x = ''
+  #   db.all_strings_below("\uFFFF") {|k| x += "#{k},"}
+  #   expect(x).to eql 'A,AB,AC,B,BB,BC,记!,'
 
-    db.stop
-  end
+  #   db.stop
+  # end
 
-  it 'uses all between test' do
-    db = Database.new(ENGINE, CONFIG)
-    db.put('A', '1')
-    db.put('AB', '2')
-    db.put('AC', '3')
-    db.put('B', '4')
-    db.put('BB', '5')
-    db.put('BC', '6')
+  # it 'uses all between test' do
+  #   db = Database.new(ENGINE, CONFIG)
+  #   db.put('A', '1')
+  #   db.put('AB', '2')
+  #   db.put('AC', '3')
+  #   db.put('B', '4')
+  #   db.put('BB', '5')
+  #   db.put('BC', '6')
 
-    x = ''
-    db.all_between('A', 'B') {|k| x += "#{k},"}
-    expect(x).to eql 'AB,AC,'
+  #   x = ''
+  #   db.all_between('A', 'B') {|k| x += "#{k},"}
+  #   expect(x).to eql 'AB,AC,'
 
-    db.put('记!', 'RR')
-    x = ''
-    db.all_strings_between('B', "\xFF") {|k| x += "#{k},"}
-    expect(x).to eql 'BB,BC,记!,'
+  #   db.put('记!', 'RR')
+  #   x = ''
+  #   db.all_strings_between('B', "\xFF") {|k| x += "#{k},"}
+  #   expect(x).to eql 'BB,BC,记!,'
 
-    x = ''
-    db.all_between('', '') {|k| x += "#{k},"}
-    db.all_between('A', 'A') {|k| x += "#{k},"}
-    db.all_between('B', 'A') {|k| x += "#{k},"}
-    expect(x).to eql ''
+  #   x = ''
+  #   db.all_between('', '') {|k| x += "#{k},"}
+  #   db.all_between('A', 'A') {|k| x += "#{k},"}
+  #   db.all_between('B', 'A') {|k| x += "#{k},"}
+  #   expect(x).to eql ''
 
-    db.stop
-  end
+  #   db.stop
+  # end
 
-  it 'uses count test' do
+  it 'uses count all test' do
     db = Database.new(ENGINE, CONFIG)
     db.put('A', '1')
     db.put('AB', '2')
@@ -355,7 +355,7 @@ describe Database do
     db.put('BB', '5')
     db.put('BC', '6')
     db.put('BD', '7')
-    expect(db.count).to eql 7
+    expect(db.count_all).to eql 7
 
     expect(db.count_above('')).to eql 7
     expect(db.count_above('A')).to eql 6
@@ -386,13 +386,13 @@ describe Database do
     db.stop
   end
 
-  it 'uses each test' do
+  it 'uses get all test' do
     db = Database.new(ENGINE, CONFIG)
     db.put('1', 'one')
     db.put('2', 'two')
 
     x = ''
-    db.each {|k, v| x += "<#{k}>,<#{v}>|"}
+    db.get_all {|k, v| x += "<#{k}>,<#{v}>|"}
     expect(x).to eql '<1>,<one>|<2>,<two>|'
 
     db.put('记!', 'RR')
@@ -403,7 +403,7 @@ describe Database do
     db.stop
   end
 
-  it 'uses each above test' do
+  it 'uses get above test' do
     db = Database.new(ENGINE, CONFIG)
     db.put('A', '1')
     db.put('AB', '2')
@@ -413,7 +413,7 @@ describe Database do
     db.put('BC', '6')
 
     x = ''
-    db.each_above('B') {|k, v| x += "#{k},#{v}|"}
+    db.get_above('B') {|k, v| x += "#{k},#{v}|"}
     expect(x).to eql 'BB,5|BC,6|'
 
     db.put('记!', 'RR')
@@ -424,7 +424,7 @@ describe Database do
     db.stop
   end
 
-  it 'uses each below test' do
+  it 'uses get below test' do
     db = Database.new(ENGINE, CONFIG)
     db.put('A', '1')
     db.put('AB', '2')
@@ -434,7 +434,7 @@ describe Database do
     db.put('BC', '6')
 
     x = ''
-    db.each_below('AC') {|k, v| x += "#{k},#{v}|"}
+    db.get_below('AC') {|k, v| x += "#{k},#{v}|"}
     expect(x).to eql 'A,1|AB,2|'
 
     db.put('记!', 'RR')
@@ -445,7 +445,7 @@ describe Database do
     db.stop
   end
 
-  it 'uses each between test' do
+  it 'uses get between test' do
     db = Database.new(ENGINE, CONFIG)
     db.put('A', '1')
     db.put('AB', '2')
@@ -455,7 +455,7 @@ describe Database do
     db.put('BC', '6')
 
     x = ''
-    db.each_between('A', 'B') {|k, v| x += "#{k},#{v}|"}
+    db.get_between('A', 'B') {|k, v| x += "#{k},#{v}|"}
     expect(x).to eql 'AB,2|AC,3|'
 
     db.put('记!', 'RR')
@@ -464,10 +464,27 @@ describe Database do
     expect(x).to eql 'BB,5|BC,6|记!,RR|'
 
     x = ''
-    db.each_between('', '') {|k, v| x += "#{k},#{v}|"}
-    db.each_between('A', 'A') {|k, v| x += "#{k},#{v}|"}
-    db.each_between('B', 'A') {|k, v| x += "#{k},#{v}|"}
+    db.get_between('', '') {|k, v| x += "#{k},#{v}|"}
+    db.get_between('A', 'A') {|k, v| x += "#{k},#{v}|"}
+    db.get_between('B', 'A') {|k, v| x += "#{k},#{v}|"}
     expect(x).to eql ''
+
+    db.stop
+  end
+
+  it 'uses get keys test' do
+    db = Database.new(ENGINE, CONFIG)
+    db.put('1', 'one')
+    db.put('2', 'two')
+
+    x = ''
+    db.get_keys {|k| x += "<#{k}>,"}
+    expect(x).to eql '<1>,<2>,'
+
+    db.put('记!', 'RR')
+    x = ''
+    db.get_keys {|k| x += "<#{k}>,"}
+    expect(x).to eql '<1>,<2>,<记!>,'
 
     db.stop
   end
