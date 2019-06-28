@@ -255,7 +255,11 @@ describe Database do
       db = Database.new(ENGINE, '{"path":1234}')
       expect(true).to be false
     rescue ArgumentError => e
-      expect(e.message).to eql 'Creating a pmemkv config from JSON string failed'
+      # XXX The expected error message should be changed to
+      # "Creating a pmemkv config from JSON string failed"
+      # when pmemkv_errmsg() is implemented.
+      # There is no way to retrieve this error message now.
+      expect(e.message).to eql 'pmemkv_open failed'
     end
     expect(db).to be nil
   end
