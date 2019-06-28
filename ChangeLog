@@ -1,0 +1,11 @@
+Fri Jun 28 2019 Szymon Romik <szymon.romik@intel.com>
+
+	* Version 0.8
+
+	This is the first official release of pmemkv-ruby project.
+
+        It provides Ruby bindings to libpmemkv 0.8 with simplified API and not
+        functionally equal to its native C/C++ counterpart.
+
+        The reason this release has version 0.8 is because its current API
+        requires extensions with idiomatic approach.
