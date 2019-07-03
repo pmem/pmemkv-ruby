@@ -52,7 +52,7 @@ We are using `/dev/shm` to
 in this simple example.
 
 ```ruby
-require '/lib/pmemkv/database'
+require './lib/pmemkv/database'
 
 def assert(condition)
   raise RuntimeError.new('Assert failed') unless condition
