@@ -49,34 +49,11 @@ LD_LIBRARY_PATH=path_to_your_libs bundle exec rspec
 
 We are using `/dev/shm` to
 [emulate persistent memory](http://pmem.io/2016/02/22/pm-emulation.html)
-in this simple example.
+in example.
 
-```ruby
-require './lib/pmemkv/database'
-
-def assert(condition)
-  raise RuntimeError.new('Assert failed') unless condition
-end
-
-puts 'Starting engine'
-db = Database.new('vsmap', "{\"path\":\"/dev/shm\",\"size\":1073741824}")
-
-puts 'Putting new key'
-db.put('key1', 'value1')
-assert db.count_all == 1
-
-puts 'Reading key back'
-assert db.get('key1').eql?('value1')
-
-puts 'Iterating existing keys'
-db.put('key2', 'value2')
-db.put('key3', 'value3')
-db.get_keys {|k| puts "  visited: #{k}"}
-
-puts 'Removing existing key'
-db.remove('key1')
-assert !db.exists('key1')
-
-puts 'Stopping engine'
-db.stop
+Example can be found within this repository in [examples directory](https://github.com/pmem/pmemkv-ruby/tree/master/examples).
+To execute the example:
 ```
+PMEM_IS_PMEM_FORCE=1 ruby basic_example.rb
+```
+
