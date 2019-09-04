@@ -40,6 +40,7 @@ git clone https://github.com/pmem/pmdk
 cd pmdk
 git checkout 1.6.1
 
+
 make BUILD_PACKAGE_CHECK=n $1
 if [ "$1" = "dpkg" ]; then
       sudo dpkg -i dpkg/libpmem_*.deb dpkg/libpmem-dev_*.deb
