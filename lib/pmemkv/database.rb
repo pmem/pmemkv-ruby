@@ -76,13 +76,11 @@ module Pmemkv
   attach_function :pmemkv_config_put_object, [:pointer, :string, :pointer, :pmemkv_config_deleter_callback], :int
   attach_function :pmemkv_config_put_uint64, [:pointer, :string, :uint64], :int
   attach_function :pmemkv_config_put_int64, [:pointer, :string, :int64], :int
-  attach_function :pmemkv_config_put_double, [:pointer, :string, :double], :int
   attach_function :pmemkv_config_put_string, [:pointer, :string, :string], :int
   attach_function :pmemkv_config_get_data, [:pointer, :string, :pointer, :uint64], :int
   attach_function :pmemkv_config_get_object, [:pointer, :string, :pointer], :int
   attach_function :pmemkv_config_get_uint64, [:pointer, :string, :uint64], :int
   attach_function :pmemkv_config_get_int64, [:pointer, :string, :int64], :int
-  attach_function :pmemkv_config_get_double, [:pointer, :string, :pointer], :int
   attach_function :pmemkv_config_get_string, [:pointer, :string, :string], :int
   attach_function :pmemkv_config_from_json, [:pointer, :string], :int
 end
