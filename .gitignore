@@ -1,3 +1,7 @@
+.*
+!.gitignore
+!.gitattributes
+!.travis.yml
 .DS_Store
 .bundle/
 .idea/
