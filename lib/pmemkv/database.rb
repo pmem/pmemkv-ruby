@@ -82,6 +82,11 @@ module Pmemkv
   attach_function :pmemkv_config_get_uint64, [:pointer, :string, :uint64], :int
   attach_function :pmemkv_config_get_int64, [:pointer, :string, :int64], :int
   attach_function :pmemkv_config_get_string, [:pointer, :string, :string], :int
+end
+
+module Pmemkv_json_config
+  extend FFI::Library
+  ffi_lib ENV['PMEMKV_JSON_CONFIG_LIB'].nil? ? 'libpmemkv_json_config.so' : ENV['PMEMKV_JSON_CONFIG_LIB']
   attach_function :pmemkv_config_from_json, [:pointer, :string], :int
 end
 
@@ -92,7 +97,7 @@ class Database
     config = Pmemkv.pmemkv_config_new
     raise RuntimeError.new("Allocating a new pmemkv config failed") if config == nil
 
-    rv = Pmemkv.pmemkv_config_from_json(config, json_string)
+    rv = Pmemkv_json_config.pmemkv_config_from_json(config, json_string)
     if rv != 0
       Pmemkv.pmemkv_config_delete(config)
       raise ArgumentError.new("Creating a pmemkv config from JSON string failed")
