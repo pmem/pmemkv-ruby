@@ -33,7 +33,7 @@
 require 'ffi'
 
 PMEMKV_STATUS_OK = 0
-PMEMKV_STATUS_FAILED = 1
+PMEMKV_STATUS_UNKNOWN_ERROR = 1
 PMEMKV_STATUS_NOT_FOUND = 2
 PMEMKV_STATUS_NOT_SUPPORTED = 3
 PMEMKV_STATUS_INVALID_ARGUMENT = 4
@@ -122,7 +122,7 @@ class Database
       yield(k.get_bytes(0, kb))
     end
     result = Pmemkv.pmemkv_get_all(@db, callback, nil)
-    raise RuntimeError.new("pmemkv_get_all() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_all() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -131,7 +131,7 @@ class Database
       yield(k.get_bytes(0, kb))
     end
     result = Pmemkv.pmemkv_get_above(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_above() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_above() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -140,7 +140,7 @@ class Database
       yield(k.get_bytes(0, kb))
     end
     result = Pmemkv.pmemkv_get_below(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_below() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_below() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -149,7 +149,7 @@ class Database
       yield(k.get_bytes(0, kb))
     end
     result = Pmemkv.pmemkv_get_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_between() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_between() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -158,7 +158,7 @@ class Database
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
     result = Pmemkv.pmemkv_get_all(@db, callback, nil)
-    raise RuntimeError.new("pmemkv_get_all() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_all() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -167,7 +167,7 @@ class Database
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
     result = Pmemkv.pmemkv_get_above(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_above() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_above() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -176,7 +176,7 @@ class Database
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
     result = Pmemkv.pmemkv_get_below(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_below() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_below() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -185,7 +185,7 @@ class Database
       yield(k.get_bytes(0, kb).force_encoding(encoding))
     end
     result = Pmemkv.pmemkv_get_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_between() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_between() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -226,7 +226,7 @@ class Database
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
     result = Pmemkv.pmemkv_get_all(@db, callback, nil)
-    raise RuntimeError.new("pmemkv_get_all() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_all() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -235,7 +235,7 @@ class Database
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
     result = Pmemkv.pmemkv_get_above(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_above() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_above() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -244,7 +244,7 @@ class Database
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
     result = Pmemkv.pmemkv_get_below(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_below() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_below() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -253,7 +253,7 @@ class Database
       yield(k.get_bytes(0, kb), v.get_bytes(0, vb))
     end
     result = Pmemkv.pmemkv_get_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_between() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_between() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -264,7 +264,7 @@ class Database
       yield(kk, vv)
     end
     result = Pmemkv.pmemkv_get_all(@db, callback, nil)
-    raise RuntimeError.new("pmemkv_get_all() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_all() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -275,7 +275,7 @@ class Database
       yield(kk, vv)
     end
     result = Pmemkv.pmemkv_get_above(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_above() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_above() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -286,7 +286,7 @@ class Database
       yield(kk, vv)
     end
     result = Pmemkv.pmemkv_get_below(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_below() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_below() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -297,13 +297,13 @@ class Database
       yield(kk, vv)
     end
     result = Pmemkv.pmemkv_get_between(@db, key1, key1.bytesize, key2, key2.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get_between() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get_between() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
   def exists(key)
     result = Pmemkv.pmemkv_exists(@db, key, key.bytesize)
-    raise RuntimeError.new("pmemkv_exists() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_exists() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     (result == PMEMKV_STATUS_OK)
   end
 
@@ -313,7 +313,7 @@ class Database
       result = value.get_bytes(0, valuebytes)
     end
     rv = Pmemkv.pmemkv_get(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get() failed") if rv == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get() failed") if rv == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
@@ -323,19 +323,19 @@ class Database
       result = value.get_bytes(0, valuebytes).force_encoding(encoding)
     end
     rv = Pmemkv.pmemkv_get(@db, key, key.bytesize, callback, nil)
-    raise RuntimeError.new("pmemkv_get() failed") if rv == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_get() failed") if rv == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
   def put(key, value)
     result = Pmemkv.pmemkv_put(@db, key, key.bytesize, value, value.bytesize)
-    raise RuntimeError.new("pmemkv_put() failed") if result == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_put() failed") if result == PMEMKV_STATUS_UNKNOWN_ERROR
     result
   end
 
   def remove(key)
     rv = Pmemkv.pmemkv_remove(@db, key, key.bytesize)
-    raise RuntimeError.new("pmemkv_remove() failed") if rv == PMEMKV_STATUS_FAILED
+    raise RuntimeError.new("pmemkv_remove() failed") if rv == PMEMKV_STATUS_UNKNOWN_ERROR
     (rv == PMEMKV_STATUS_OK)
   end
 
