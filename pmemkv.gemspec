@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name = 'pmemkv'
-  spec.version = '0.8.0'
+  spec.version = '0.9.0'
 
   spec.summary = 'Ruby bindings for pmemkv'
   spec.description = spec.summary
