@@ -31,25 +31,24 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #
-# install-pmdk.sh <package_type> - installs PMDK (stable) packages
+# install-memkind.sh
 #
 
 set -e
 
-git clone https://github.com/pmem/pmdk
-cd pmdk
-git checkout 1.7
+# v1.9.0; latest release
+MEMKIND_STABLE_VERSION=v1.9.0
 
+WORKDIR=$(pwd)
 
-make BUILD_PACKAGE_CHECK=n $1
-if [ "$1" = "dpkg" ]; then
-      sudo dpkg -i dpkg/libpmem_*.deb dpkg/libpmem-dev_*.deb
-      sudo dpkg -i dpkg/libpmemobj_*.deb dpkg/libpmemobj-dev_*.deb
-elif [ "$1" = "rpm" ]; then
-      sudo rpm -i rpm/*/pmdk-debuginfo-*.rpm
-      sudo rpm -i rpm/*/libpmem-*.rpm
-      sudo rpm -i rpm/*/libpmemobj-*.rpm
-fi
+git clone https://github.com/memkind/memkind memkind_git
 
-cd ..
-rm -r pmdk
+cd $WORKDIR/memkind_git
+git checkout $MEMKIND_STABLE_VERSION
+
+./build.sh prefix=/usr/
+make -j$(nproc)
+make install
+
+cd $WORKDIR
+rm -r memkind_git
