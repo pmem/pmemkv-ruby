@@ -39,7 +39,7 @@ set -e
 package_type=$1
 
 # version 1.0
-current_pmemkv_version="1.0"
+current_pmemkv_version="1.0.1"
 
 prepare_pmemkv () {
 	pmemkv_version="$1"
