@@ -37,9 +37,10 @@
 set -e
 
 package_type=$1
-
-# version 1.0
-current_pmemkv_version="1.0.1"
+# Merge pull request #510 from lukaszstolarczuk/update-dockerimages-to-newest-versions; 04.11.2019
+current_pmemkv_version="780f848c0b4c0d1ee8d6de4107571e8c00e846c5"
+# tag: 1.0.1; 28.10.2019
+stable_1_pmemkv_version="1.0.1"
 
 prepare_pmemkv () {
 	pmemkv_version="$1"
@@ -62,6 +63,7 @@ git clone https://github.com/pmem/pmemkv
 cd pmemkv
 
 prepare_pmemkv "$current_pmemkv_version" "pmemkv-master"
+prepare_pmemkv "$stable_1_pmemkv_version" "pmemkv-stable-1.0"
 
 cd ..
 rm -r pmemkv
