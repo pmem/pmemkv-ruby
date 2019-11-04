@@ -31,8 +31,7 @@
 
 #
 # Dockerfile - a 'recipe' for Docker to build an image of ubuntu-based
-#              environment prepared for running pmemkv-ruby build and
-#	       tests.
+#              environment prepared for running pmemkv-ruby build and tests.
 #
 
 # Pull base image
@@ -79,9 +78,6 @@ RUN ./install-pmdk.sh dpkg
 # Install pmdk c++ bindings
 COPY install-libpmemobj-cpp.sh install-libpmemobj-cpp.sh
 RUN ./install-libpmemobj-cpp.sh DEB
-
-COPY install-memkind.sh install-memkind.sh
-RUN ./install-memkind.sh
 
 # Prepare pmemkv
 COPY prepare-pmemkv.sh prepare-pmemkv.sh
