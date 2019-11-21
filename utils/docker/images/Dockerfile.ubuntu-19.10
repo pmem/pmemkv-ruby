@@ -31,13 +31,18 @@
 
 #
 # Dockerfile - a 'recipe' for Docker to build an image of ubuntu-based
-#              environment prepared for running pmemkv-ruby build and
-#	       tests.
+#              environment prepared for running pmemkv-ruby build and tests.
 #
 
 # Pull base image
-FROM ubuntu:19.04
-MAINTAINER lukasz.stolarczuk@intel.com
+FROM ubuntu:19.10
+MAINTAINER szymon.romik@intel.com
+
+# Set required environment variables
+ENV OS ubuntu
+ENV OS_VER 19.10
+ENV PACKAGE_MANAGER deb
+ENV NOTTY 1
 
 # Update the Apt cache and install basic tools
 RUN apt-get update
@@ -54,7 +59,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 	git \
 	libc6-dbg \
 	libdaxctl-dev \
-	libgtest-dev \
 	libmemkind-dev \
 	libndctl-dev \
 	libnode-dev \
@@ -81,9 +85,6 @@ RUN ./install-pmdk.sh dpkg
 COPY install-libpmemobj-cpp.sh install-libpmemobj-cpp.sh
 RUN ./install-libpmemobj-cpp.sh DEB
 
-COPY install-memkind.sh install-memkind.sh
-RUN ./install-memkind.sh
-
 # Prepare pmemkv
 COPY prepare-pmemkv.sh prepare-pmemkv.sh
 RUN ./prepare-pmemkv.sh DEB
@@ -97,9 +98,3 @@ ENV USER user
 ENV USERPASS pass
 RUN useradd -m $USER -g sudo -p `mkpasswd $USERPASS`
 USER $USER
-
-# Set required environment variables
-ENV OS ubuntu
-ENV OS_VER 19.04
-ENV PACKAGE_MANAGER deb
-ENV NOTTY 1

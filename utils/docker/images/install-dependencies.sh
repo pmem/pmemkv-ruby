@@ -35,6 +35,9 @@
 #                                that it can be built offline
 #
 
+# Merge pull request #42 from ldorau/Fix-repo-name-in-CONTRIBUTING.md; 22.10.2019
+RUBY_VERSION="972057c8c8481485b1be4b9f73ba39c869197bf8"
+
 set -e
 
 # all of the dependencies (gems) needed to run pmemkv-ruby will be saved
@@ -42,6 +45,8 @@ mkdir -p /opt/bindings/ruby/
 sudo gem install bundler -v '< 2.0'
 git clone https://github.com/pmem/pmemkv-ruby.git
 cd pmemkv-ruby
+git checkout $RUBY_VERSION
+
 # bundle package command copies all of the .gem files needed to run the application
 # into the vendor/cache directory
 sudo bundle package
